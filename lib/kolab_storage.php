@@ -150,10 +150,16 @@ class kolab_storage
             self::$config->set('kolab_auth_filter', $filter);
         }
 
-        $user_attrib = self::$config->get('kolab_users_id_attrib', self::$config->get('kolab_auth_login', 'mail'));
+        $user_field = $user_attrib = self::$config->get('kolab_users_id_attrib');
 
-        //$ldap->set_filter($this->ldap_filter);
-        $ldap->extend_fieldmap(array($user_attrib => $user_attrib));
+        // Fallback to kolab_auth_login, which is not attribute, but field name
+        if (!$user_field && ($user_field = self::$config->get('kolab_auth_login', 'email'))) {
+            $user_attrib = $config['fieldmap'][$user_field];
+        }
+
+        if ($user_field && $user_attrib) {
+            $ldap->extend_fieldmap(array($user_field => $user_attrib));
+        }
 
         self::$ldap[$name] = $ldap;
 

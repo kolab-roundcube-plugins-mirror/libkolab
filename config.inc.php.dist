@@ -78,6 +78,8 @@ $config['kolab_users_cache'] = null;
 $config['kolab_users_cache_ttl'] = '10d';
 
 // JSON-RPC endpoint configuration of the Bonnie web service providing historic data for groupware objects
+$config['kolab_bonnie_api'] = null;
+/*
 $config['kolab_bonnie_api'] = array(
     'uri'    => 'https://<kolab-hostname>:8080/api/rpc',
     'user'   => 'webclient',
@@ -86,3 +88,4 @@ $config['kolab_bonnie_api'] = array(
     'debug'  => true,   // logs requests/responses to <log-dir>/bonnie
     'timeout' => 30,
 );
+*/

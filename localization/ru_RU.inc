@@ -22,4 +22,6 @@ $labels['actionflagset'] = 'Флаг установлен';
 $labels['actionflagclear'] = 'Флаг удалён';
 $labels['showrevision'] = 'Показать эту версию';
 $labels['restore'] = 'Восстановить эту версию';
+$labels['objectchangelognotavailable'] = 'История недоступна для этого объекта.';
 $labels['tabsharing'] = 'Поделиться';
+$labels['aclnorights'] = 'У вас нет прав администратора для этой папки.';
