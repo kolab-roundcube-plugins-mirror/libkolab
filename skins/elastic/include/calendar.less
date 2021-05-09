@@ -137,7 +137,7 @@ fieldset.categories .input-group {
 
     .event-row {
         white-space: nowrap;
-        .overflow-ellipsis;
+        .overflow-ellipsis();
 
         &.current {
             color: #333;
@@ -166,7 +166,8 @@ fieldset.categories .input-group {
 }
 
 #calendar.content {
-    overflow: hidden !important; // fullcalendar widget implements scrolling on its own
+    // fullcalendar widget implements scrolling on its own
+    overflow: hidden !important;
     position: relative;
 }
 
@@ -567,7 +568,7 @@ fieldset.categories .input-group {
 
     @media screen and (min-width: (@screen-width-small + 1px)) and (max-width: 920px) {
         .fc-center {
-            .overflow-ellipsis;
+            .overflow-ellipsis();
             flex: 1;
 
             h2 {
@@ -715,7 +716,7 @@ body.task-calendar {
 
         span {
             display: block;
-            .overflow-ellipsis;
+            .overflow-ellipsis();
         }
     }
 }
@@ -729,7 +730,7 @@ body.task-calendar {
     }
 
     .event-location {
-        .overflow-ellipsis;
+        .overflow-ellipsis();
         white-space: nowrap;
     }
 
@@ -819,7 +820,7 @@ body.task-calendar {
         }
 
         &.loading:before {
-            .animated-icon-class;
+            .animated-icon-class();
             content: @fa-var-circle-notch;
             display: block;
             line-height: 1;
@@ -967,7 +968,7 @@ body.task-calendar {
             }
 
             &.loading:before {
-                .animated-icon-class;
+                .animated-icon-class();
                 .font-icon-solid(@fa-var-circle-notch);
             }
 

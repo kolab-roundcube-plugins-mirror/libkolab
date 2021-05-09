@@ -24,6 +24,10 @@
 @skin: "elastic";
 @skin-path: "../../../../skins/@{skin}";
 
+// Disable dark mode support for compatibility with Roundcube 1.4.
+// The variable has been added to variables.less in Roundcube 1.5.
+@dark-mode-enabled: false;
+
 @import (reference) "@{skin-path}/styles/variables";
 @import (reference) "@{skin-path}/styles/mixins";
 
@@ -47,7 +51,7 @@
             display: flex;
 
             & > a:first-child {
-                .overflow-ellipsis;
+                .overflow-ellipsis();
                 position: relative;
                 flex-grow: 1;
 
@@ -155,7 +159,7 @@
                 content: @fa-var-lock;
                 position: absolute;
                 left: 2.25rem;
-                top: @listing-line-height / 2;
+                top: (@listing-line-height / 2);
                 font-size: .9em !important;
                 width: .9em;
                 line-height: 1;
@@ -166,7 +170,7 @@
                 opacity: .9;
 
                 html.touch & {
-                    top: @listing-touch-line-height / 2;
+                    top: (@listing-touch-line-height / 2);
                     left: 2.7rem;
                 }
             }
@@ -219,7 +223,7 @@
         right: 0;
         min-width: 2em;
         line-height: 1.4rem;
-        margin: (@listing-line-height - 1.4 * @page-font-size)/2;
+        margin: ((@listing-line-height - 1.4 * @page-font-size) / 2);
         padding: 0 .3em;
         border-radius: .4em;
         background: @color-list-secondary;
@@ -229,7 +233,7 @@
 
         html.touch & {
             line-height: 2rem;
-            margin: (@listing-touch-line-height - 2 * @page-font-size)/2;
+            margin: ((@listing-touch-line-height - 2 * @page-font-size) / 2);
         }
     }
 }
@@ -429,7 +433,7 @@ button.btn {
         }
 
         a.messagelink {
-            .overflow-ellipsis;
+            .overflow-ellipsis();
         }
 
         a.delete .inner {
@@ -589,7 +593,7 @@ button.btn {
 }
 
 // Use icons-only on taskmenu with small screen height
-@media screen and (max-height: 640px) and (min-width: (@screen-width-small + 1px)) {
+@media screen and (max-height: 750px) and (min-width: (@screen-width-small + 1px)) {
     #layout-menu .popover-header img,
     #layout-menu {
         width: @layout-menu-width-sm;
@@ -598,7 +602,7 @@ button.btn {
     #taskmenu {
         a {
             height: @layout-menu-width-sm;
-            width: 100%;
+            width: @layout-menu-width-sm;
             font-size: 1.2rem !important;
         }
 
@@ -620,3 +624,7 @@ button.btn {
 @import "include/kolab_tags";
 @import "include/libcalendaring";
 @import "include/tasklist";
+
+& when (@dark-mode-enabled = true) {
+    @import "include/darkmode";
+}
