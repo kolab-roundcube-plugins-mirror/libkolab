@@ -1,0 +1,168 @@
+/**
+ * Kolab core library
+ *
+ * This file contains Elastic skin dark mode styles for all Kolab plugins
+ *
+ * @author Aleksander Machniak <machniak@kolabsys.com>
+ *
+ * Copyright (C) 2012-2018, Kolab Systems AG <contact@kolabsys.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+html.dark-mode {
+    // Use icons-only on taskmenu with small screen height
+    @media screen and (max-height: 750px) and (min-width: (@screen-width-small + 1px)) {
+        #taskmenu a {
+            width: @layout-menu-width-sm - 1px;
+        }
+    }
+
+    .watermark {
+        background-color: @color-dark-background;
+        background-blend-mode: soft-light;
+
+        &:before {
+            background: none;
+        }
+    }
+
+    #filelistcontainer,
+    .fc-scroller {
+        scrollbar-width: thin;
+    }
+
+    .fc {
+        .fc-header-toolbar {
+            background-color: @color-dark-list-selected-background;
+        }
+
+        #timezone-display,
+        .fc-center h2 {
+            color: @color-dark-font;
+        }
+    }
+
+    .filelist tr.session.owner > td.name::after,
+    .rsvp-status:not(.accepted):not(.tentative):not(.declined)::before,
+    .resources-dialog .listing li.resource > a {
+        color: @color-dark-font;
+    }
+
+    .fc-unthemed th,
+    .fc-unthemed td,
+    .fc-unthemed .fc-divider,
+    .fc-unthemed .fc-row,
+    .fc-unthemed .fc-content,
+    .fc-unthemed .fc-popover,
+    .fc-unthemed .fc-list-view,
+    .fc-unthemed .fc-list-heading td,
+    #tasklist li.taskitem > div,
+    #tasklist li.taskitem > span {
+        border-color: @color-dark-list-border;
+    }
+
+    .files-dialog .selection-content,
+    .calendar-scheduler .schedule-table td.times td,
+    .calendar-scheduler .attendees-list div.attendee,
+    .calendar-scheduler .schedule-table .timesheader,
+    .calendar-scheduler .schedule-table td.attendees .attendees-list,
+    .fc-unthemed th,
+    .fc-unthemed td {
+        border-color: @color-dark-border;
+    }
+
+    #resource-availability .fc,
+    #resource-availability .fc-view {
+        border-color: @color-dark-border;
+    }
+
+    .selection-dialog .form-addon,
+    .selection-dialog .header,
+    .selection-dialog .selection-list,
+    .edit-attendees-table th {
+        border-color: @color-dark-border !important;
+    }
+
+    .selection-dialog .listing ul,
+    .selection-dialog .form-addon,
+    .selection-dialog .header {
+        background-color: transparent;
+    }
+
+    .fc-unthemed .fc-divider,
+    .fc-unthemed .fc-popover .fc-header,
+    .fc-unthemed .fc-list-heading td,
+    body.task-calendar .ui-datepicker-inline .ui-datepicker-activerange,
+    .listing li.selected > div > *,
+    #tasklist li.taskitem div.taskhead.selected {
+        color: @color-dark-list-selected;
+        background-color: @color-dark-list-selected-background;
+    }
+
+    #folder-mount-form td.source.selected {
+        background-color: @color-dark-list-selected-background;
+    }
+
+    #tagsform option,
+    .tagedit-list li.tagedit-listelement-new input {
+        color: @color-dark-input;
+    }
+
+    .fc .fc-axis,
+    .fc .fc-day-number,
+    .fc .fc-week-number,
+    .fc .fc-day-header,
+    .fc .fc-week-header,
+    .formcontent.text-only .faded *,
+    .availability span,
+    .invitebox td.label,
+    .invitebox .rsvp-status.hint,
+    .calendar-agenda-preview .event-row.current,
+    #tasklist span.date,
+    #kolabnoteslist td.date,
+    #notedetailstitle .dates {
+        color: @color-dark-hint;
+    }
+
+    .invitebox .folder-select select {
+        background-color: @color-dark-input-background;
+    }
+
+    .tagedit-list[tabindex="-1"] {
+        border-color: @color-dark-input-border-focus;
+        box-shadow: 0 0 0 .2rem @color-input-border-focus-shadow;
+        background: @color-dark-input-background-focus;
+    }
+
+    #tasklist .progressbar .progressvalue {
+        border-color: @color-dark-warning;
+    }
+
+    .listing {
+        li > div.readonly a:first-child,
+        li.readonly:not(.virtual) > div a:first-child {
+            &:after {
+                color: @color-dark-font;
+                background-color: @color-dark-background;
+            }
+        }
+    }
+
+    .dialog-message {
+        opacity: 1;
+        color: @color-dark-font;
+        background-color: @color-dark-warning;
+    }
+}
