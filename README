@@ -32,7 +32,6 @@ For available configuration options see config.inc.php.dist file.
 
 IMPORTANT
 ---------
-
 This plugin doesn't work with the Classic skin of Roundcube because no
 templates are available for that skin.
 

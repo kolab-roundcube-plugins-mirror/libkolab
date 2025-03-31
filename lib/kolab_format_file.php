@@ -31,24 +31,17 @@ class kolab_format_file extends kolab_format
     protected $read_func = 'kolabformat::readKolabFile';
     protected $write_func = 'kolabformat::writeKolabFile';
 
-    protected $sensitivity_map = array(
-        'public'       => kolabformat::ClassPublic,
-        'private'      => kolabformat::ClassPrivate,
-        'confidential' => kolabformat::ClassConfidential,
-    );
-
     /**
      * Set properties to the kolabformat object
      *
-     * @param array  Object data as hash array
+     * @param array $object Object data as hash array
      */
     public function set(&$object)
     {
         // set common object properties
         parent::set($object);
 
-        $this->obj->setClassification($this->sensitivity_map[$object['sensitivity']]);
-        $this->obj->setCategories(self::array2vector($object['categories']));
+        $this->obj->setCategories(self::array2vector($object['categories'] ?? null));
 
         if (isset($object['notes'])) {
             $this->obj->setNote($object['notes']);
@@ -58,7 +51,7 @@ class kolab_format_file extends kolab_format
         if (!empty($object['_attachments'])) {
             $cid         = key($object['_attachments']);
             $attach_attr = $object['_attachments'][$cid];
-            $attach      = new Attachment;
+            $attach      = new Attachment();
 
             $attach->setLabel((string)$attach_attr['name']);
             $attach->setUri('cid:' . $cid, $attach_attr['mimetype']);
@@ -72,12 +65,10 @@ class kolab_format_file extends kolab_format
                     if (is_resource($attach_attr['content'])) {
                         $stat = fstat($attach_attr['content']);
                         $size = $stat ? $stat['size'] : 0;
-                    }
-                    else {
+                    } else {
                         $size = strlen($attach_attr['content']);
                     }
-                }
-                else if (isset($attach_attr['path'])) {
+                } elseif (isset($attach_attr['path'])) {
                     $size = @filesize($attach_attr['path']);
                 }
 
@@ -101,11 +92,11 @@ class kolab_format_file extends kolab_format
     /**
      * Convert the Configuration object into a hash array data structure
      *
-     * @param array Additional data for merge
+     * @param array $data Additional data for merge
      *
-     * @return array  Config object data as hash array
+     * @return array Config object data as hash array
      */
-    public function to_array($data = array())
+    public function to_array($data = [])
     {
         // return cached result
         if (!empty($this->data)) {
@@ -115,14 +106,11 @@ class kolab_format_file extends kolab_format
         // read common object props into local data object
         $object = parent::to_array($data);
 
-        $sensitivity_map = array_flip($this->sensitivity_map);
-
         // read object properties
-        $object += array(
-            'sensitivity' => $sensitivity_map[$this->obj->classification()],
+        $object += [
             'categories'  => self::vector2array($this->obj->categories()),
             'notes'       => $this->obj->note(),
-        );
+        ];
 
         return $this->data = $object;
     }
@@ -134,19 +122,17 @@ class kolab_format_file extends kolab_format
      */
     public function get_tags()
     {
-        $tags = array();
+        $tags = [];
 
-        foreach ((array)$this->data['categories'] as $cat) {
+        foreach ((array)($this->data['categories'] ?? []) as $cat) {
             $tags[] = rcube_utils::normalize_string($cat);
         }
 
         // Add file mimetype to tags
         if (!empty($this->data['_attachments'])) {
-            reset($this->data['_attachments']);
-            $key        = key($this->data['_attachments']);
-            $attachment = $this->data['_attachments'][$key];
+            $attachment = $this->data['_attachments'][array_key_first($this->data['_attachments'])];
 
-            if ($attachment['mimetype']) {
+            if (!empty($attachment['mimetype'])) {
                 $tags[] = $attachment['mimetype'];
             }
         }

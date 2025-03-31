@@ -29,12 +29,12 @@ abstract class kolab_format
 {
     public static $timezone;
 
-    public /*abstract*/ $CTYPE;
-    public /*abstract*/ $CTYPEv2;
+    /*abstract*/ public $CTYPE;
+    /*abstract*/ public $CTYPEv2;
 
-    protected /*abstract*/ $objclass;
-    protected /*abstract*/ $read_func;
-    protected /*abstract*/ $write_func;
+    /*abstract*/ protected $objclass;
+    /*abstract*/ protected $read_func;
+    /*abstract*/ protected $write_func;
 
     protected $obj;
     protected $data;
@@ -44,12 +44,12 @@ abstract class kolab_format
     protected $loaded = false;
     protected $version = '3.0';
 
-    const KTYPE_PREFIX = 'application/x-vnd.kolab.';
-    const PRODUCT_ID   = 'Roundcube-libkolab-1.1';
+    public const KTYPE_PREFIX = 'application/x-vnd.kolab.';
+    public const PRODUCT_ID   = 'Roundcube-libkolab-1.1';
 
     // mapping table for valid PHP timezones not supported by libkolabxml
     // basically the entire list of ftp://ftp.iana.org/tz/data/backward
-    protected static $timezone_map = array(
+    protected static $timezone_map = [
         'Africa/Asmera' => 'Africa/Asmara',
         'Africa/Timbuktu' => 'Africa/Abidjan',
         'America/Argentina/ComodRivadavia' => 'America/Argentina/Catamarca',
@@ -156,43 +156,51 @@ abstract class kolab_format
         'Universal' => 'Etc/UTC',
         'W-SU' => 'Europe/Moscow',
         'Zulu' => 'Etc/UTC',
-    );
+    ];
 
     /**
      * Factory method to instantiate a kolab_format object of the given type and version
      *
-     * @param string Object type to instantiate
-     * @param float  Format version
-     * @param string Cached xml data to initialize with
-     * @return object kolab_format
+     * @param string $type    Object type to instantiate
+     * @param string $version Format version
+     * @param string $xmldata Cached xml data to initialize with
+     *
+     * @return kolab_format|PEAR_Error
      */
     public static function factory($type, $version = '3.0', $xmldata = null)
     {
-        if (!isset(self::$timezone))
+        if (!isset(self::$timezone)) {
             self::$timezone = new DateTimeZone('UTC');
+        }
 
-        if (!self::supports($version))
+        if (!self::supports($version)) {
+            // @phpstan-ignore-next-line
             return PEAR::raiseError("No support for Kolab format version " . $version);
+        }
 
         $type = preg_replace('/configuration\.[a-z._]+$/', 'configuration', $type);
         $suffix = preg_replace('/[^a-z]+/', '', $type);
         $classname = 'kolab_format_' . $suffix;
-        if (class_exists($classname))
+        if (class_exists($classname)) {
             return new $classname($xmldata, $version);
+        }
 
+        // @phpstan-ignore-next-line
         return PEAR::raiseError("Failed to load Kolab Format wrapper for type " . $type);
     }
 
     /**
      * Determine support for the given format version
      *
-     * @param float Format version to check
-     * @return boolean True if supported, False otherwise
+     * @param float $version Format version to check
+     *
+     * @return bool True if supported, False otherwise
      */
     public static function supports($version)
     {
-        if ($version == '2.0')
+        if ($version == '2.0') {
             return class_exists('kolabobject');
+        }
         // default is version 3
         return class_exists('kolabformat');
     }
@@ -200,10 +208,10 @@ abstract class kolab_format
     /**
      * Convert the given date/time value into a cDateTime object
      *
-     * @param mixed         Date/Time value either as unix timestamp, date string or PHP DateTime object
-     * @param DateTimeZone  The timezone the date/time is in. Use global default if Null, local time if False
-     * @param boolean       True of the given date has no time component
-     * @param DateTimeZone  The timezone to convert the date to before converting to cDateTime
+     * @param mixed        $datetime Date/Time value either as unix timestamp, date string or PHP DateTime object
+     * @param DateTimeZone $tz       The timezone the date/time is in. Use global default if Null, local time if False
+     * @param bool         $dateonly True of the given date has no time component
+     * @param DateTimeZone $dest_tz  The timezone to convert the date to before converting to cDateTime
      *
      * @return cDateTime The libkolabxml date/time object
      */
@@ -211,10 +219,12 @@ abstract class kolab_format
     {
         // use timezone information from datetime or global setting
         if (!$tz && $tz !== false) {
-            if ($datetime instanceof DateTime)
+            if ($datetime instanceof DateTimeInterface) {
                 $tz = $datetime->getTimezone();
-            if (!$tz)
+            }
+            if (!$tz) {
                 $tz = self::$timezone;
+            }
         }
 
         $result = new cDateTime();
@@ -222,20 +232,23 @@ abstract class kolab_format
         try {
             // got a unix timestamp (in UTC)
             if (is_numeric($datetime)) {
-                $datetime = new DateTime('@'.$datetime, new DateTimeZone('UTC'));
-                if ($tz) $datetime->setTimezone($tz);
-            }
-            else if (is_string($datetime) && strlen($datetime)) {
-                $datetime = $tz ? new DateTime($datetime, $tz) : new DateTime($datetime);
-            }
-            else if ($datetime instanceof DateTime) {
+                $datetime = new libcalendaring_datetime('@' . $datetime, new DateTimeZone('UTC'));
+                if ($tz) {
+                    $datetime->setTimezone($tz);
+                }
+            } elseif (is_string($datetime) && strlen($datetime)) {
+                $datetime = $tz ? new libcalendaring_datetime($datetime, $tz) : new libcalendaring_datetime($datetime);
+            } elseif ($datetime instanceof DateTimeInterface) {
                 $datetime = clone $datetime;
             }
+        } catch (Exception $e) {
         }
-        catch (Exception $e) {}
 
-        if ($datetime instanceof DateTime) {
-            if ($dest_tz instanceof DateTimeZone && $dest_tz !== $datetime->getTimezone()) {
+        if ($datetime instanceof DateTimeInterface) {
+            if ($dest_tz instanceof DateTimeZone
+                && $dest_tz !== $datetime->getTimezone()
+                && method_exists($datetime, 'setTimezone')
+            ) {
                 $datetime->setTimezone($dest_tz);
                 $tz = $dest_tz;
             }
@@ -250,15 +263,15 @@ abstract class kolab_format
             $result->setTime($datetime->format('G'), $datetime->format('i'), $datetime->format('s'));
 
             // libkolabxml throws errors on some deprecated timezone names
-            $utc_aliases = array('UTC', 'GMT', '+00:00', 'Z', 'Etc/GMT', 'Etc/UTC');
+            $utc_aliases = ['UTC', 'GMT', '+00:00', 'Z', 'Etc/GMT', 'Etc/UTC'];
 
             if ($tz && in_array($tz->getName(), $utc_aliases)) {
                 $result->setUTC(true);
-            }
-            else if ($tz !== false) {
+            } elseif ($tz !== false) {
                 $tzid = $tz->getName();
-                if (array_key_exists($tzid, self::$timezone_map))
+                if (array_key_exists($tzid, self::$timezone_map)) {
                     $tzid = self::$timezone_map[$tzid];
+                }
                 $result->setTimezone($tzid);
             }
         }
@@ -269,10 +282,10 @@ abstract class kolab_format
     /**
      * Convert the given cDateTime into a PHP DateTime object
      *
-     * @param cDateTime    The libkolabxml datetime object
-     * @param DateTimeZone The timezone to convert the date to
+     * @param cDateTime    $cdt     The libkolabxml datetime object
+     * @param DateTimeZone $dest_tz The timezone to convert the date to
      *
-     * @return DateTime PHP datetime instance
+     * @return libcalendaring_datetime|null PHP datetime instance, Null on invalid input
      */
     public static function php_datetime($cdt, $dest_tz = null)
     {
@@ -280,27 +293,28 @@ abstract class kolab_format
             return null;
         }
 
-        $d = new DateTime;
-        $d->setTimezone($dest_tz ?: self::$timezone);
+        $d = new libcalendaring_datetime(null, self::$timezone);
 
-        try {
-            if ($tzs = $cdt->timezone()) {
-                $tz = new DateTimeZone($tzs);
-                $d->setTimezone($tz);
-            }
-            else if ($cdt->isUTC()) {
-                $d->setTimezone(new DateTimeZone('UTC'));
+        if ($dest_tz) {
+            $d->setTimezone($dest_tz);
+        } else {
+            try {
+                if ($tzs = $cdt->timezone()) {
+                    $tz = new DateTimeZone($tzs);
+                    $d->setTimezone($tz);
+                } elseif ($cdt->isUTC()) {
+                    $d->setTimezone(new DateTimeZone('UTC'));
+                }
+            } catch (Exception $e) {
             }
         }
-        catch (Exception $e) { }
 
         $d->setDate($cdt->year(), $cdt->month(), $cdt->day());
 
         if ($cdt->isDateOnly()) {
             $d->_dateonly = true;
             $d->setTime(12, 0, 0);  // set time to noon to avoid timezone troubles
-        }
-        else {
+        } else {
             $d->setTime($cdt->hour(), $cdt->minute(), $cdt->second());
         }
 
@@ -310,29 +324,34 @@ abstract class kolab_format
     /**
      * Convert a libkolabxml vector to a PHP array
      *
-     * @param object vector Object
+     * @param vector $vec Object
+     * @param int    $max Max vector size
+     *
      * @return array Indexed array containing vector elements
      */
     public static function vector2array($vec, $max = PHP_INT_MAX)
     {
-        $arr = array();
-        for ($i=0; $i < $vec->size() && $i < $max; $i++)
+        $arr = [];
+        for ($i = 0; $i < $vec->size() && $i < $max; $i++) {
             $arr[] = $vec->get($i);
+        }
         return $arr;
     }
 
     /**
      * Build a libkolabxml vector (string) from a PHP array
      *
-     * @param array Array with vector elements
-     * @return object vectors
+     * @param array $arr Array with vector elements
+     *
+     * @return vectors
      */
     public static function array2vector($arr)
     {
-        $vec = new vectors;
+        $vec = new vectors();
         foreach ((array)$arr as $val) {
-            if (strlen($val))
+            if (strlen($val)) {
                 $vec->push($val);
+            }
         }
         return $vec;
     }
@@ -340,15 +359,16 @@ abstract class kolab_format
     /**
      * Parse the X-Kolab-Type header from MIME messages and return the object type in short form
      *
-     * @param string X-Kolab-Type header value
+     * @param string $type X-Kolab-Type header value
+     *
      * @return string Kolab object type (contact,event,task,note,etc.)
      */
-    public static function mime2object_type($x_kolab_type)
+    public static function mime2object_type($type)
     {
         return preg_replace(
-            array('/dictionary.[a-z.]+$/', '/contact.distlist$/'),
-            array( 'dictionary',            'distribution-list'),
-            substr($x_kolab_type, strlen(self::KTYPE_PREFIX))
+            ['/dictionary.[a-z.]+$/', '/contact.distlist$/'],
+            [ 'dictionary',            'distribution-list'],
+            substr($type, strlen(self::KTYPE_PREFIX))
         );
     }
 
@@ -358,21 +378,23 @@ abstract class kolab_format
      */
     public function __construct($xmldata = null, $version = null)
     {
-        $this->obj = new $this->objclass;
+        $this->obj = new $this->objclass();
         $this->xmldata = $xmldata;
 
-        if ($version)
+        if ($version) {
             $this->version = $version;
+        }
 
         // use libkolab module if available
-        if (class_exists('kolabobject'))
+        if (class_exists('kolabobject')) {
             $this->xmlobject = new XMLObject();
+        }
     }
 
     /**
      * Check for format errors after calling kolabformat::write*()
      *
-     * @return boolean True if there were errors, False if OK
+     * @return bool True if there were errors, False if OK
      */
     protected function format_errors()
     {
@@ -392,13 +414,13 @@ abstract class kolab_format
         }
 
         if ($log && !isset($this->formaterror)) {
-            rcube::raise_error(array(
+            rcube::raise_error([
                 'code' => 660,
                 'type' => 'php',
                 'file' => __FILE__,
                 'line' => __LINE__,
                 'message' => "kolabformat $log: " . kolabformat::errorMessage(),
-            ), true);
+            ], true);
 
             $this->formaterror = $ret;
         }
@@ -413,7 +435,7 @@ abstract class kolab_format
     protected function update_uid()
     {
         // get generated UID
-        if (!$this->data['uid']) {
+        if (empty($this->data['uid'])) {
             if ($this->xmlobject) {
                 $this->data['uid'] = $this->xmlobject->getSerializedUID();
             }
@@ -441,17 +463,19 @@ abstract class kolab_format
     /**
      * Get constant value for libkolab's version parameter
      *
-     * @param float Version value to convert
-     * @return int Constant value of either kolabobject::KolabV2 or kolabobject::KolabV3 or false if kolabobject module isn't available
+     * @param float $v Version value to convert
+     *
+     * @return int|false Constant value of either kolabobject::KolabV2 or kolabobject::KolabV3 or false if kolabobject module isn't available
      */
     protected function libversion($v = null)
     {
         if (class_exists('kolabobject')) {
             $version = $v ?: $this->version;
-            if ($version <= '2.0')
+            if ($version <= '2.0') {
                 return kolabobject::KolabV2;
-            else
+            } else {
                 return kolabobject::KolabV3;
+            }
         }
 
         return false;
@@ -463,12 +487,13 @@ abstract class kolab_format
      */
     protected function libfunc($func)
     {
-        if (is_array($func) || strpos($func, '::'))
+        if (is_array($func) || strpos($func, '::')) {
             return $func;
-        else if (class_exists('kolabobject'))
-            return array($this->xmlobject, $func);
-        else
+        } elseif (class_exists('kolabobject')) {
+            return [$this->xmlobject, $func];
+        } else {
             return 'kolabformat::' . $func;
+        }
     }
 
     /**
@@ -482,23 +507,24 @@ abstract class kolab_format
     /**
      * Load Kolab object data from the given XML block
      *
-     * @param string XML data
-     * @return boolean True on success, False on failure
+     * @param string $xml XML data
      */
     public function load($xml)
     {
         $this->formaterror = null;
         $read_func = $this->libfunc($this->read_func);
 
-        if (is_array($read_func))
+        if (is_array($read_func)) {
             $r = call_user_func($read_func, $xml, $this->libversion());
-        else
+        } else {
             $r = call_user_func($read_func, $xml, false);
+        }
 
-        if (is_resource($r))
+        if (is_resource($r)) {
             $this->obj = new $this->objclass($r);
-        else if (is_a($r, $this->objclass))
+        } elseif (is_a($r, $this->objclass)) {
             $this->obj = $r;
+        }
 
         $this->loaded = !$this->format_errors();
     }
@@ -506,7 +532,8 @@ abstract class kolab_format
     /**
      * Write object data to XML format
      *
-     * @param float Format version to write
+     * @param float $version Format version to write
+     *
      * @return string XML data
      */
     public function write($version = null)
@@ -515,15 +542,17 @@ abstract class kolab_format
 
         $this->init();
         $write_func = $this->libfunc($this->write_func);
-        if (is_array($write_func))
+        if (is_array($write_func)) {
             $this->xmldata = call_user_func($write_func, $this->obj, $this->libversion($version), self::PRODUCT_ID);
-        else
+        } else {
             $this->xmldata = call_user_func($write_func, $this->obj, self::PRODUCT_ID);
+        }
 
-        if (!$this->format_errors())
+        if (!$this->format_errors()) {
             $this->update_uid();
-        else
+        } else {
             $this->xmldata = null;
+        }
 
         return $this->xmldata;
     }
@@ -531,19 +560,20 @@ abstract class kolab_format
     /**
      * Set properties to the kolabformat object
      *
-     * @param array  Object data as hash array
+     * @param array $object Object data as hash array
      */
     public function set(&$object)
     {
         $this->init();
 
-        if (!empty($object['uid']))
+        if (!empty($object['uid'])) {
             $this->obj->setUid($object['uid']);
+        }
 
         // set some automatic values if missing
         if (method_exists($this->obj, 'setCreated')) {
             // Always set created date to workaround libkolabxml (>1.1.4) bug
-            $created = $object['created'] ?: new DateTime('now');
+            $created = !empty($object['created']) ? $object['created'] : new DateTime('now');
             $created->setTimezone(new DateTimeZone('UTC')); // must be UTC
             $this->obj->setCreated(self::get_datetime($created));
             $object['created'] = $created;
@@ -554,20 +584,21 @@ abstract class kolab_format
 
         // Save custom properties of the given object
         if (isset($object['x-custom']) && method_exists($this->obj, 'setCustomProperties')) {
-            $vcustom = new vectorcs;
+            $vcustom = new vectorcs();
             foreach ((array)$object['x-custom'] as $cp) {
-                if (is_array($cp))
+                if (is_array($cp)) {
                     $vcustom->push(new CustomProperty($cp[0], $cp[1]));
+                }
             }
             $this->obj->setCustomProperties($vcustom);
         }
         // load custom properties from XML for caching (#2238) if method exists (#3125)
-        else if (method_exists($this->obj, 'customProperties')) {
-            $object['x-custom'] = array();
+        elseif (method_exists($this->obj, 'customProperties')) {
+            $object['x-custom'] = [];
             $vcustom = $this->obj->customProperties();
-            for ($i=0; $i < $vcustom->size(); $i++) {
+            for ($i = 0; $i < $vcustom->size(); $i++) {
                 $cp = $vcustom->get($i);
-                $object['x-custom'][] = array($cp->identifier, $cp->value);
+                $object['x-custom'][] = [$cp->identifier, $cp->value];
             }
         }
     }
@@ -575,19 +606,19 @@ abstract class kolab_format
     /**
      * Convert the Kolab object into a hash array data structure
      *
-     * @param array Additional data for merge
+     * @param array $data Additional data for merge
      *
-     * @return array  Kolab object data as hash array
+     * @return array Kolab object data as hash array
      */
-    public function to_array($data = array())
+    public function to_array($data = [])
     {
         $this->init();
 
         // read object properties into local data object
-        $object = array(
+        $object = [
             'uid'     => $this->obj->uid(),
             'changed' => self::php_datetime($this->obj->lastModified()),
-        );
+        ];
 
         // not all container support the created property
         if (method_exists($this->obj, 'created')) {
@@ -597,9 +628,9 @@ abstract class kolab_format
         // read custom properties
         if (method_exists($this->obj, 'customProperties')) {
             $vcustom = $this->obj->customProperties();
-            for ($i=0; $i < $vcustom->size(); $i++) {
+            for ($i = 0; $i < $vcustom->size(); $i++) {
                 $cp = $vcustom->get($i);
-                $object['x-custom'][] = array($cp->identifier, $cp->value);
+                $object['x-custom'][] = [$cp->identifier, $cp->value];
             }
         }
 
@@ -607,9 +638,8 @@ abstract class kolab_format
         if ($data) {
             foreach ($data as $idx => $value) {
                 if (is_array($value)) {
-                    $object[$idx] = array_merge((array)$object[$idx], $value);
-                }
-                else {
+                    $object[$idx] = array_merge((array)($object[$idx] ?? []), $value);
+                } else {
                     $object[$idx] = $value;
                 }
             }
@@ -630,7 +660,7 @@ abstract class kolab_format
      */
     public function get_tags()
     {
-        return array();
+        return [];
     }
 
     /**
@@ -640,13 +670,13 @@ abstract class kolab_format
      */
     public function get_words()
     {
-        return array();
+        return [];
     }
 
     /**
      * Utility function to extract object attachment data
      *
-     * @param array Hash array reference to append attachment data into
+     * @param array $object Hash array reference to append attachment data into
      */
     public function get_attachments(&$object, $all = false)
     {
@@ -654,31 +684,29 @@ abstract class kolab_format
 
         // handle attachments
         $vattach = $this->obj->attachments();
-        for ($i=0; $i < $vattach->size(); $i++) {
+        for ($i = 0; $i < $vattach->size(); $i++) {
             $attach = $vattach->get($i);
 
             // skip cid: attachments which are mime message parts handled by kolab_storage_folder
             if (substr($attach->uri(), 0, 4) != 'cid:' && $attach->label()) {
                 $name    = $attach->label();
-                $key     = $name . (isset($object['_attachments'][$name]) ? '.'.$i : '');
+                $key     = $name . (isset($object['_attachments'][$name]) ? '.' . $i : '');
                 $content = $attach->data();
-                $object['_attachments'][$key] = array(
-                    'id'       => 'i:'.$i,
+                $object['_attachments'][$key] = [
+                    'id'       => 'i:' . $i,
                     'name'     => $name,
                     'mimetype' => $attach->mimetype(),
                     'size'     => strlen($content),
                     'content'  => $content,
-                );
-            }
-            else if ($all && substr($attach->uri(), 0, 4) == 'cid:') {
+                ];
+            } elseif ($all && substr($attach->uri(), 0, 4) == 'cid:') {
                 $key = $attach->uri();
-                $object['_attachments'][$key] = array(
+                $object['_attachments'][$key] = [
                     'id'       => $key,
                     'name'     => $attach->label(),
                     'mimetype' => $attach->mimetype(),
-                );
-            }
-            else if (in_array(substr($attach->uri(), 0, 4), array('http','imap'))) {
+                ];
+            } elseif (in_array(substr($attach->uri(), 0, 4), ['http','imap'])) {
                 $object['links'][] = $attach->uri();
             }
         }
@@ -687,36 +715,36 @@ abstract class kolab_format
     /**
      * Utility function to set attachment properties to the kolabformat object
      *
-     * @param array  Object data as hash array
-     * @param boolean True to always overwrite attachment information
+     * @param array $object Object data as hash array
+     * @param bool  $write  True to always overwrite attachment information
      */
     protected function set_attachments($object, $write = true)
     {
         // save attachments
-        $vattach = new vectorattachment;
-        foreach ((array) $object['_attachments'] as $cid => $attr) {
-            if (empty($attr))
+        $vattach = new vectorattachment();
+        foreach ((array)($object['_attachments'] ?? []) as $cid => $attr) {
+            if (empty($attr)) {
                 continue;
-            $attach = new Attachment;
+            }
+            $attach = new Attachment();
             $attach->setLabel((string)$attr['name']);
             $attach->setUri('cid:' . $cid, $attr['mimetype'] ?: 'application/octet-stream');
             if ($attach->isValid()) {
                 $vattach->push($attach);
                 $write = true;
-            }
-            else {
-                rcube::raise_error(array(
+            } else {
+                rcube::raise_error([
                     'code' => 660,
                     'type' => 'php',
                     'file' => __FILE__,
                     'line' => __LINE__,
                     'message' => "Invalid attributes for attachment $cid: " . var_export($attr, true),
-                ), true);
+                ], true);
             }
         }
 
-        foreach ((array) $object['links'] as $link) {
-            $attach = new Attachment;
+        foreach ((array)($object['links'] ?? []) as $link) {
+            $attach = new Attachment();
             $attach->setUri($link, 'unknown');
             $vattach->push($attach);
             $write = true;
@@ -735,7 +763,7 @@ abstract class kolab_format
      */
     public static function merge_attachments(&$object, $old)
     {
-        $object['_attachments'] = (array) $old['_attachments'];
+        $object['_attachments'] = isset($old['_attachments']) && is_array($old['_attachments']) ? $old['_attachments'] : [];
 
         // delete existing attachment(s)
         if (!empty($object['deleted_attachments'])) {
@@ -747,27 +775,26 @@ abstract class kolab_format
         }
 
         // in kolab_storage attachments are indexed by content-id
-        foreach ((array) $object['attachments'] as $attachment) {
+        foreach ((array) ($object['attachments'] ?? []) as $attachment) {
             $key = null;
 
             // Roundcube ID has nothing to do with the storage ID, remove it
             // for uploaded/new attachments
             // FIXME: Roundcube uses 'data', kolab_format uses 'content'
-            if ($attachment['content'] || $attachment['path'] || $attachment['data']) {
+            if (!empty($attachment['content']) || !empty($attachment['path']) || !empty($attachment['data'])) {
                 unset($attachment['id']);
             }
 
-            if ($attachment['id']) {
+            if (!empty($attachment['id'])) {
                 foreach ((array) $object['_attachments'] as $cid => $att) {
                     if ($att && $attachment['id'] == $att['id']) {
                         $key = $cid;
                     }
                 }
-            }
-            else {
+            } else {
                 // find attachment by name, so we can update it if exists
                 // and make sure there are no duplicates
-                foreach ((array) $object['_attachments'] as $cid => $att) {
+                foreach ($object['_attachments'] as $cid => $att) {
                     if ($att && $attachment['name'] == $att['name']) {
                         $key = $cid;
                     }
@@ -778,7 +805,7 @@ abstract class kolab_format
                 $object['_attachments'][$key] = false;
             }
             // replace existing entry
-            else if ($key) {
+            elseif ($key) {
                 $object['_attachments'][$key] = $attachment;
             }
             // append as new attachment

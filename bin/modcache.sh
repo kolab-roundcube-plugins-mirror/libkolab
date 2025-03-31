@@ -201,7 +201,7 @@ function authenticate(&$opts)
 
     // prompt for password
     if (empty($opts['password']) && ($opts['username'] || $opts['user'])) {
-        $opts['password'] = prompt_silent("Password: ");
+        $opts['password'] = rcube_utils::prompt_silent("Password: ");
     }
 
     // simulate "login as" feature
@@ -210,9 +210,22 @@ function authenticate(&$opts)
     else if (empty($opts['user']))
         $opts['user'] = $opts['username'];
 
+    // parse $host URL
+    $url = parse_url(trim($opts['host']));
+    if (!empty($url['host'])) {
+        $imap_host = $url['host'];
+        $imap_ssl  = isset($url['scheme']) && in_array($url['scheme'], array('ssl','imaps','tls')) ? $url['scheme'] : false;
+        $imap_port = isset($url['port']) ? $url['port'] : ($imap_ssl && $imap_ssl != 'tls' ? 993 : 143);
+    }
+    else {
+        $imap_host = trim($opts['host']);
+        $imap_port = 143;
+        $imap_ssl  = false;
+    }
+
     // let the kolab_auth plugin do its magic
     $auth = $rcmail->plugins->exec_hook('authenticate', array(
-        'host' => trim($opts['host']),
+        'host' => $imap_host,
         'user' => trim($opts['user']),
         'pass' => $opts['password'],
         'cookiecheck' => false,
@@ -221,7 +234,7 @@ function authenticate(&$opts)
 
     if ($auth['valid']) {
         $storage = $rcmail->get_storage();
-        if ($storage->connect($auth['host'], $auth['user'], $auth['pass'], 143, false)) {
+        if ($storage->connect($imap_host, $auth['user'], $auth['pass'], $imap_port, $imap_ssl)) {
             if ($opts['verbose'])
                 echo "IMAP login succeeded.\n";
             if (($user = rcube_user::query($opts['username'], $auth['host'])) && $user->ID)
@@ -241,7 +254,7 @@ function imap_host()
 {
     global $rcmail;
 
-    $default_host = $rcmail->config->get('default_host');
+    $default_host = $rcmail->config->get('imap_host', $rcmail->config->get('default_host'));
 
     if (is_array($default_host)) {
         $key = key($default_host);

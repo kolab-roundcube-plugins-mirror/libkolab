@@ -18,7 +18,7 @@ Add these config options used by the libkolab tests:
   $config['default_host']   = '<kolab-server>';
   
   // disable all plugins
-  $config['plugins'] = array();
+  $config['plugins'] = [];
 ```
 
 WARNING

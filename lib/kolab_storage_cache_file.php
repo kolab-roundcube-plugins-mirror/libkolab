@@ -23,8 +23,8 @@
 
 class kolab_storage_cache_file extends kolab_storage_cache
 {
-    protected $extra_cols = array('filename');
-    protected $data_props = array('type', 'size', 'filename', 'fileid');
+    protected $extra_cols = ['filename'];
+    protected $data_props = ['type', 'size', 'filename', 'fileid'];
 
     /**
      * Helper method to convert the given Kolab object into a dataset to be written to cache

@@ -178,7 +178,7 @@ function imap_host()
 {
     global $rcmail;
 
-    $default_host = $rcmail->config->get('default_host');
+    $default_host = $rcmail->config->get('imap_host', $rcmail->config->get('default_host'));
 
     if (is_array($default_host)) {
         $key = key($default_host);

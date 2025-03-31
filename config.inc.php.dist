@@ -10,6 +10,9 @@ $config['kolab_format_version']  = '3.0';
 
 // Optional override of the URL to read and trigger Free/Busy information of Kolab users
 // Defaults to /freebusy or https://<imap-server->/freebusy
+// Note that we add <email>.ifb path automatically, with optional query parameeters.
+// You can prevent addition of path by specifying an URL with %u variable, e.g.
+// "https://dav.domain.tld/freebusy/user/%u" (works with Cyrus v3 Freebusy service).
 $config['kolab_freebusy_server'] = null;
 
 // Enables listing of only subscribed folders. This e.g. will limit
@@ -27,7 +30,7 @@ $config['kolab_custom_display_names'] = false;
 // Configuration of HTTP requests.
 // See http://pear.php.net/manual/en/package.http.http-request2.config.php
 // for list of supported configuration options (array keys)
-$config['kolab_http_request'] = array();
+$config['kolab_http_request'] = [];
 
 // When kolab_cache is enabled Roundcube's messages cache will be redundant
 // when working on kolab folders. Here we can:
@@ -38,11 +41,11 @@ $config['kolab_messages_cache_bypass'] = 0;
 
 // These event properties contribute to a significant revision to the calendar component
 // and if changed will increment the sequence number relevant for scheduling according to RFC 5545
-$config['kolab_event_scheduling_properties'] = array('start', 'end', 'allday', 'recurrence', 'location', 'status', 'cancelled');
+$config['kolab_event_scheduling_properties'] = ['start', 'end', 'allday', 'recurrence', 'location', 'status', 'cancelled'];
 
 // These task properties contribute to a significant revision to the calendar component
 // and if changed will increment the sequence number relevant for scheduling according to RFC 5545
-$config['kolab_task_scheduling_properties'] = array('start', 'due', 'summary', 'status');
+$config['kolab_task_scheduling_properties'] = ['start', 'due', 'summary', 'status'];
 
 // LDAP directory to find avilable users for folder sharing.
 // Either contains an array with LDAP addressbook configuration or refers to entry in $config['ldap_public'].
@@ -59,7 +62,7 @@ $config['kolab_users_filter'] = '(&(objectclass=kolabInetOrgPerson)(|(uid=%u)(ma
 $config['kolab_users_id_attrib'] = null;
 
 // Use these attributes when searching users in LDAP
-$config['kolab_users_search_attrib'] = array('cn','mail','alias');
+$config['kolab_users_search_attrib'] = ['cn','mail','alias'];
 
 // Which property of the LDAP user record to use as a display name.
 // Defaults to the 'kolab_auth_name' configuration option.
@@ -72,6 +75,12 @@ $config['kolab_users_cache'] = null;
 // lifetime of shared folder mapping cache
 // possible units: s, m, h, d, w
 $config['kolab_users_cache_ttl'] = '10d';
+
+// Enable sharing of DAV folders. Default: null (disabled)
+// Possible options:
+// 'acl': Use standard DAV ACL permissions system
+// 'sharing': Use draft-pot-webdav-resource-sharing standard (for Cyrus-DAV v3)
+$config['kolab_dav_sharing'] = null;
 
 // JSON-RPC endpoint configuration of the Bonnie web service providing historic data for groupware objects
 $config['kolab_bonnie_api'] = null;

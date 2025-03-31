@@ -48,7 +48,7 @@ abstract class kolab_storage_folder_api
 
     /**
      * Is this folder set to be the default for its type
-     * @var boolean
+     * @var bool
      */
     public $default = false;
 
@@ -56,7 +56,7 @@ abstract class kolab_storage_folder_api
      * List of direct child folders
      * @var array
      */
-    public $children = array();
+    public $children = [];
 
     /**
      * Name of the parent folder
@@ -77,40 +77,42 @@ abstract class kolab_storage_folder_api
      */
     protected function __construct($name)
     {
-      $this->name = $name;
-      $this->id   = kolab_storage::folder_id($name);
-      $this->imap = rcube::get_instance()->get_storage();
+        $this->name = $name;
+        $this->id   = kolab_storage::folder_id($name);
+        $this->imap = rcube::get_instance()->get_storage();
     }
 
 
     /**
      * Returns the owner of the folder.
      *
-     * @param boolean  Return a fully qualified owner name (i.e. including domain for shared folders)
-     * @return string  The owner of this folder.
+     * @param bool $fully_qualified Return a fully qualified owner name (i.e. including domain for shared folders)
+     *
+     * @return string The owner of this folder.
      */
     public function get_owner($fully_qualified = false)
     {
         // return cached value
-        if (isset($this->owner))
+        if (isset($this->owner)) {
             return $this->owner;
+        }
 
         $info = $this->get_folder_info();
         $rcmail = rcube::get_instance();
 
         switch ($info['namespace']) {
-        case 'personal':
-            $this->owner = $rcmail->get_user_name();
-            break;
+            case 'personal':
+                $this->owner = $rcmail->get_user_name();
+                break;
 
-        case 'shared':
-            $this->owner = 'anonymous';
-            break;
+            case 'shared':
+                $this->owner = 'anonymous';
+                break;
 
-        default:
-            list($prefix, $this->owner) = explode($this->imap->get_hierarchy_delimiter(), $info['name']);
-            $fully_qualified = true;  // enforce email addresses (backwards compatibility)
-            break;
+            default:
+                [$prefix, $this->owner] = explode($this->imap->get_hierarchy_delimiter(), $info['name']);
+                $fully_qualified = true;  // enforce email addresses (backwards compatibility)
+                break;
         }
 
         if ($fully_qualified && strpos($this->owner, '@') === false) {
@@ -134,8 +136,9 @@ abstract class kolab_storage_folder_api
      */
     public function get_namespace()
     {
-        if (!isset($this->namespace))
+        if (!isset($this->namespace)) {
             $this->namespace = $this->imap->folder_namespace($this->name);
+        }
 
         return $this->namespace;
     }
@@ -175,11 +178,11 @@ abstract class kolab_storage_folder_api
         array_pop($path);
 
         // don't list top-level namespace folder
-        if (count($path) == 1 && in_array($this->get_namespace(), array('other', 'shared'))) {
-            $path = array();
+        if (count($path) == 1 && in_array($this->get_namespace(), ['other', 'shared'])) {
+            $path = [];
         }
 
-        return join($delim, $path);
+        return implode($delim, $path);
     }
 
     /**
@@ -192,40 +195,41 @@ abstract class kolab_storage_folder_api
     {
         $info = $this->get_folder_info();
         $owner = $this->get_owner();
-        list($user, $domain) = explode('@', $owner);
+        [$user, $domain] = explode('@', $owner);
 
         switch ($info['namespace']) {
-        case 'personal':
-            return sprintf('user/%s/%s@%s', $user, $this->name, $domain);
+            case 'personal':
+                return sprintf('user/%s/%s@%s', $user, $this->name, $domain);
 
-        case 'shared':
-            $ns = $this->imap->get_namespace('shared');
-            $prefix = is_array($ns) ? $ns[0][0] : '';
-            list(, $domain) = explode('@', rcube::get_instance()->get_user_name());
-            return substr($this->name, strlen($prefix)) . '@' . $domain;
+            case 'shared':
+                $ns = $this->imap->get_namespace('shared');
+                $prefix = is_array($ns) ? $ns[0][0] : '';
+                [, $domain] = explode('@', rcube::get_instance()->get_user_name());
+                return substr($this->name, strlen($prefix)) . '@' . $domain;
 
-        default:
-            $ns = $this->imap->get_namespace('other');
-            $prefix = is_array($ns) ? $ns[0][0] : '';
-            list($user, $folder) = explode($this->imap->get_hierarchy_delimiter(), substr($info['name'], strlen($prefix)), 2);
-            if (strpos($user, '@')) {
-                list($user, $domain) = explode('@', $user);
-            }
-            return sprintf('user/%s/%s@%s', $user, $folder, $domain);
+            default:
+                $ns = $this->imap->get_namespace('other');
+                $prefix = is_array($ns) ? $ns[0][0] : '';
+                [$user, $folder] = explode($this->imap->get_hierarchy_delimiter(), substr($info['name'], strlen($prefix)), 2);
+                if (strpos($user, '@')) {
+                    [$user, $domain] = explode('@', $user);
+                }
+                return sprintf('user/%s/%s@%s', $user, $folder, $domain);
         }
     }
 
     /**
      * Get the color value stored in metadata
      *
-     * @param string Default color value to return if not set
+     * @param string $default Default color value to return if not set
+     *
      * @return mixed Color value from IMAP metadata or $default is not set
      */
     public function get_color($default = null)
     {
         // color is defined in folder METADATA
         $metadata = $this->get_metadata();
-        if (($color = $metadata[kolab_storage::COLOR_KEY_PRIVATE]) || ($color = $metadata[kolab_storage::COLOR_KEY_SHARED])) {
+        if (($color = $metadata[kolab_storage::COLOR_KEY_PRIVATE] ?? null) || ($color = $metadata[kolab_storage::COLOR_KEY_SHARED] ?? null)) {
             return $color;
         }
 
@@ -250,8 +254,9 @@ abstract class kolab_storage_folder_api
     /**
      * Sets IMAP metadata/annotations (SETMETADATA/SETANNOTATION)
      *
-     * @param array  $entries Entry-value array (use NULL value as NIL)
-     * @return boolean True on success, False on failure
+     * @param array $entries Entry-value array (use NULL value as NIL)
+     *
+     * @return bool True on success, False on failure
      */
     public function set_metadata($entries)
     {
@@ -264,8 +269,9 @@ abstract class kolab_storage_folder_api
      */
     public function get_folder_info()
     {
-        if (!isset($this->info))
+        if (!isset($this->info)) {
             $this->info = $this->imap->folder_info($this->name);
+        }
 
         return $this->info;
     }
@@ -275,8 +281,9 @@ abstract class kolab_storage_folder_api
      */
     public function get_imap_data()
     {
-        if (!isset($this->idata))
+        if (!isset($this->idata)) {
             $this->idata = $this->imap->folder_data($this->name);
+        }
 
         return $this->idata;
     }
@@ -306,27 +313,28 @@ abstract class kolab_storage_folder_api
     {
         $rights = $this->info['rights'];
 
-        if (!is_array($rights))
+        if (!is_array($rights)) {
             $rights = $this->imap->my_rights($this->name);
+        }
 
-        return join('', (array)$rights);
+        return implode('', (array)$rights);
     }
 
     /**
      * Helper method to extract folder UID metadata
      *
-     * @return string Folder's UID
+     * @return string|null Folder's UID
      */
     public function get_uid()
     {
         // To be implemented by extending classes
-        return false;
+        return null;
     }
 
     /**
      * Check activation status of this folder
      *
-     * @return boolean True if enabled, false if not
+     * @return bool True if enabled, false if not
      */
     public function is_active()
     {
@@ -336,9 +344,9 @@ abstract class kolab_storage_folder_api
     /**
      * Change activation status of this folder
      *
-     * @param boolean The desired subscription status: true = active, false = not active
+     * @param bool $active The desired subscription status: true = active, false = not active
      *
-     * @return True on success, false on error
+     * @return bool True on success, false on error
      */
     public function activate($active)
     {
@@ -348,7 +356,7 @@ abstract class kolab_storage_folder_api
     /**
      * Check subscription status of this folder
      *
-     * @return boolean True if subscribed, false if not
+     * @return bool True if subscribed, false if not
      */
     public function is_subscribed()
     {
@@ -358,9 +366,9 @@ abstract class kolab_storage_folder_api
     /**
      * Change subscription status of this folder
      *
-     * @param boolean The desired subscription status: true = subscribed, false = not subscribed
+     * @param bool $subscribed The desired subscription status: true = subscribed, false = not subscribed
      *
-     * @return True on success, false on error
+     * @return bool True on success, false on error
      */
     public function subscribe($subscribed)
     {

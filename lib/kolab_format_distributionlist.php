@@ -35,7 +35,7 @@ class kolab_format_distributionlist extends kolab_format
     /**
      * Set properties to the kolabformat object
      *
-     * @param array  Object data as hash array
+     * @param array $object Object data as hash array
      */
     public function set(&$object)
     {
@@ -44,26 +44,24 @@ class kolab_format_distributionlist extends kolab_format
 
         $this->obj->setName($object['name']);
 
-        $seen = array();
-        $members = new vectorcontactref;
+        $seen = [];
+        $members = new vectorcontactref();
         foreach ((array)$object['member'] as $i => $member) {
             if ($member['uid']) {
                 $key = 'uid:' . $member['uid'];
                 $m = new ContactReference(ContactReference::UidReference, $member['uid']);
-            }
-            else if ($member['email']) {
+            } elseif ($member['email']) {
                 $key = 'mailto:' . $member['email'];
                 $m = new ContactReference(ContactReference::EmailReference, $member['email']);
                 $m->setName($member['name']);
-            }
-            else {
+            } else {
                 continue;
             }
 
-            if (!$seen[$key]++) {
+            if (empty($seen[$key])) {
                 $members->push($m);
-            }
-            else {
+                $seen[$key] = true;
+            } else {
                 // remove dupes for caching
                 unset($object['member'][$i]);
             }
@@ -87,39 +85,39 @@ class kolab_format_distributionlist extends kolab_format
     /**
      * Convert the Distlist object into a hash array data structure
      *
-     * @param array Additional data for merge
+     * @param array $data Additional data for merge
      *
-     * @return array  Distribution list data as hash array
+     * @return array Distribution list data as hash array
      */
-    public function to_array($data = array())
+    public function to_array($data = [])
     {
         // return cached result
-        if (!empty($this->data))
+        if (!empty($this->data)) {
             return $this->data;
+        }
 
         // read common object props into local data object
         $object = parent::to_array($data);
 
         // add object properties
-        $object += array(
+        $object += [
             'name'      => $this->obj->name(),
-            'member'    => array(),
+            'member'    => [],
             '_type'     => 'distribution-list',
-        );
+        ];
 
         $members = $this->obj->members();
-        for ($i=0; $i < $members->size(); $i++) {
+        for ($i = 0; $i < $members->size(); $i++) {
             $member = $members->get($i);
-//            if ($member->type() == ContactReference::UidReference && ($uid = $member->uid()))
-                $object['member'][] = array(
-                    'uid'   => $member->uid(),
-                    'email' => $member->email(),
-                    'name'  => $member->name(),
-                );
+            //            if ($member->type() == ContactReference::UidReference && ($uid = $member->uid()))
+            $object['member'][] = [
+                'uid'   => $member->uid(),
+                'email' => $member->email(),
+                'name'  => $member->name(),
+            ];
         }
 
         $this->data = $object;
         return $this->data;
     }
-
 }

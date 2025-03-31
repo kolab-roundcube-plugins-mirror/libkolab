@@ -31,95 +31,95 @@ class kolab_format_configuration extends kolab_format
     protected $read_func  = 'readConfiguration';
     protected $write_func = 'writeConfiguration';
 
-    private $type_map = array(
+    private $type_map = [
         'category'    => Configuration::TypeCategoryColor,
         'dictionary'  => Configuration::TypeDictionary,
         'file_driver' => Configuration::TypeFileDriver,
         'relation'    => Configuration::TypeRelation,
         'snippet'     => Configuration::TypeSnippet,
-    );
+    ];
 
-    private $driver_settings_fields = array('host', 'port', 'username', 'password');
+    private $driver_settings_fields = ['host', 'port', 'username', 'password'];
 
     /**
      * Set properties to the kolabformat object
      *
-     * @param array  Object data as hash array
+     * @param array $object Object data as hash array
      */
     public function set(&$object)
     {
         // read type-specific properties
         switch ($object['type']) {
-        case 'dictionary':
-            $dict = new Dictionary($object['language']);
-            $dict->setEntries(self::array2vector($object['e']));
-            $this->obj = new Configuration($dict);
-            break;
+            case 'dictionary':
+                $dict = new Dictionary($object['language']);
+                $dict->setEntries(self::array2vector($object['e']));
+                $this->obj = new Configuration($dict);
+                break;
 
-        case 'category':
-            // TODO: implement this
-            $categories = new vectorcategorycolor;
-            $this->obj = new Configuration($categories);
-            break;
+            case 'category':
+                // TODO: implement this
+                $categories = new vectorcategorycolor();
+                $this->obj = new Configuration($categories);
+                break;
 
-        case 'file_driver':
-            $driver = new FileDriver($object['driver'], $object['title']);
+            case 'file_driver':
+                $driver = new FileDriver($object['driver'], $object['title']);
 
-            $driver->setEnabled((bool) $object['enabled']);
+                $driver->setEnabled(!empty($object['enabled']));
 
-            foreach ($this->driver_settings_fields as $field) {
-                $value = $object[$field];
-                if ($value !== null) {
-                    $driver->{'set' . ucfirst($field)}($value);
-                }
-            }
-
-            $this->obj = new Configuration($driver);
-            break;
-
-        case 'relation':
-            $relation = new Relation(strval($object['name']), strval($object['category']));
-
-            if ($object['color']) {
-                $relation->setColor($object['color']);
-            }
-            if ($object['parent']) {
-                $relation->setParent($object['parent']);
-            }
-            if ($object['iconName']) {
-                $relation->setIconName($object['iconName']);
-            }
-            if ($object['priority'] > 0) {
-                $relation->setPriority((int) $object['priority']);
-            }
-            if (!empty($object['members'])) {
-                $relation->setMembers(self::array2vector($object['members']));
-            }
-
-            $this->obj = new Configuration($relation);
-            break;
-
-        case 'snippet':
-            $collection = new SnippetCollection($object['name']);
-            $snippets   = new vectorsnippets;
-
-            foreach ((array) $object['snippets'] as $item) {
-                $snippet = new snippet($item['name'], $item['text']);
-                $snippet->setTextType(strtolower($item['type']) == 'html' ? Snippet::HTML : Snippet::Plain);
-                if ($item['shortcut']) {
-                    $snippet->setShortCut($item['shortcut']);
+                foreach ($this->driver_settings_fields as $field) {
+                    $value = $object[$field];
+                    if ($value !== null) {
+                        $driver->{'set' . ucfirst($field)}($value);
+                    }
                 }
 
-                $snippets->push($snippet);
-            }
+                $this->obj = new Configuration($driver);
+                break;
 
-            $collection->setSnippets($snippets);
+            case 'relation':
+                $relation = new Relation(strval($object['name'] ?? ''), strval($object['category'] ?? ''));
 
-            $this->obj = new Configuration($collection);
-            break;
+                if (!empty($object['color'])) {
+                    $relation->setColor($object['color']);
+                }
+                if (!empty($object['parent'])) {
+                    $relation->setParent($object['parent']);
+                }
+                if (!empty($object['iconName'])) {
+                    $relation->setIconName($object['iconName']);
+                }
+                if (!empty($object['priority'])) {
+                    $relation->setPriority((int) $object['priority']);
+                }
+                if (!empty($object['members'])) {
+                    $relation->setMembers(self::array2vector($object['members']));
+                }
 
-        default:
-            return false;
+                $this->obj = new Configuration($relation);
+                break;
+
+            case 'snippet':
+                $collection = new SnippetCollection($object['name']);
+                $snippets   = new vectorsnippets();
+
+                foreach ((array)($object['snippets'] ?? []) as $item) {
+                    $snippet = new snippet($item['name'], $item['text']);
+                    $snippet->setTextType(strtolower($item['type']) == 'html' ? Snippet::HTML : Snippet::Plain);
+                    if (!empty($item['shortcut'])) {
+                        $snippet->setShortCut($item['shortcut']);
+                    }
+
+                    $snippets->push($snippet);
+                }
+
+                $collection->setSnippets($snippets);
+
+                $this->obj = new Configuration($collection);
+                break;
+
+            default:
+                return false;
         }
 
         // adjust content-type string
@@ -146,11 +146,11 @@ class kolab_format_configuration extends kolab_format
     /**
      * Convert the Configuration object into a hash array data structure
      *
-     * @param array Additional data for merge
+     * @param array $data Additional data for merge
      *
-     * @return array  Config object data as hash array
+     * @return array Config object data as hash array
      */
-    public function to_array($data = array())
+    public function to_array($data = [])
     {
         // return cached result
         if (!empty($this->data)) {
@@ -166,60 +166,60 @@ class kolab_format_configuration extends kolab_format
 
         // read type-specific properties
         switch ($object['type']) {
-        case 'dictionary':
-            $dict = $this->obj->dictionary();
-            $object['language'] = $dict->language();
-            $object['e'] = self::vector2array($dict->entries());
-            break;
+            case 'dictionary':
+                $dict = $this->obj->dictionary();
+                $object['language'] = $dict->language();
+                $object['e'] = self::vector2array($dict->entries());
+                break;
 
-        case 'category':
-            // TODO: implement this
-            break;
+            case 'category':
+                // TODO: implement this
+                break;
 
-        case 'file_driver':
-            $driver = $this->obj->fileDriver();
+            case 'file_driver':
+                $driver = $this->obj->fileDriver();
 
-            $object['driver']  = $driver->driver();
-            $object['title']   = $driver->title();
-            $object['enabled'] = $driver->enabled();
+                $object['driver']  = $driver->driver();
+                $object['title']   = $driver->title();
+                $object['enabled'] = $driver->enabled();
 
-            foreach ($this->driver_settings_fields as $field) {
-                $object[$field] = $driver->{$field}();
-            }
+                foreach ($this->driver_settings_fields as $field) {
+                    $object[$field] = $driver->{$field}();
+                }
 
-            break;
+                break;
 
-        case 'relation':
-            $relation = $this->obj->relation();
+            case 'relation':
+                $relation = $this->obj->relation();
 
-            $object['name']     = $relation->name();
-            $object['category'] = $relation->type();
-            $object['color']    = $relation->color();
-            $object['parent']   = $relation->parent();
-            $object['iconName'] = $relation->iconName();
-            $object['priority'] = $relation->priority();
-            $object['members']  = self::vector2array($relation->members());
+                $object['name']     = $relation->name();
+                $object['category'] = $relation->type();
+                $object['color']    = $relation->color();
+                $object['parent']   = $relation->parent();
+                $object['iconName'] = $relation->iconName();
+                $object['priority'] = $relation->priority();
+                $object['members']  = self::vector2array($relation->members());
 
-            break;
+                break;
 
-        case 'snippet':
-            $collection = $this->obj->snippets();
+            case 'snippet':
+                $collection = $this->obj->snippets();
 
-            $object['name']     = $collection->name();
-            $object['snippets'] = array();
+                $object['name']     = $collection->name();
+                $object['snippets'] = [];
 
-            $snippets = $collection->snippets();
-            for ($i=0; $i < $snippets->size(); $i++) {
-                $snippet = $snippets->get($i);
-                $object['snippets'][] = array(
-                    'name'     => $snippet->name(),
-                    'text'     => $snippet->text(),
-                    'type'     => $snippet->textType() == Snippet::HTML ? 'html' : 'plain',
-                    'shortcut' => $snippet->shortCut(),
-                );
-            }
+                $snippets = $collection->snippets();
+                for ($i = 0; $i < $snippets->size(); $i++) {
+                    $snippet = $snippets->get($i);
+                    $object['snippets'][] = [
+                        'name'     => $snippet->name(),
+                        'text'     => $snippet->text(),
+                        'type'     => $snippet->textType() == Snippet::HTML ? 'html' : 'plain',
+                        'shortcut' => $snippet->shortCut(),
+                    ];
+                }
 
-            break;
+                break;
         }
 
         // adjust content-type string
@@ -238,16 +238,16 @@ class kolab_format_configuration extends kolab_format
      */
     public function get_tags()
     {
-        $tags = array();
+        $tags = [];
 
         switch ($this->data['type']) {
-        case 'dictionary':
-            $tags = array($this->data['language']);
-            break;
+            case 'dictionary':
+                $tags = [$this->data['language']];
+                break;
 
-        case 'relation':
-            $tags = array('category:' . $this->data['category']);
-            break;
+            case 'relation':
+                $tags = ['category:' . $this->data['category']];
+                break;
         }
 
         return $tags;
@@ -260,20 +260,18 @@ class kolab_format_configuration extends kolab_format
      */
     public function get_words()
     {
-        $words = array();
+        $words = [];
 
-        foreach ((array)$this->data['members'] as $url) {
+        foreach (($this->data['members'] ?? []) as $url) {
             $member = kolab_storage_config::parse_member_url($url);
 
             if (empty($member)) {
                 if (strpos($url, 'urn:uuid:') === 0) {
                     $words[] = substr($url, 9);
                 }
-            }
-            else if (!empty($member['params']['message-id'])) {
+            } elseif (!empty($member['params']['message-id'])) {
                 $words[] = $member['params']['message-id'];
-            }
-            else {
+            } else {
                 // derive message identifier from URI
                 $words[] = md5($url);
             }

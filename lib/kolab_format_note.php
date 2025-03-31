@@ -27,22 +27,16 @@ class kolab_format_note extends kolab_format
     public $CTYPE = 'application/vnd.kolab+xml';
     public $CTYPEv2 = 'application/x-vnd.kolab.note';
 
-    public static $fulltext_cols = array('title', 'description', 'categories');
+    public static $fulltext_cols = ['title', 'description', 'categories'];
 
     protected $objclass = 'Note';
     protected $read_func = 'readNote';
     protected $write_func = 'writeNote';
 
-    protected $sensitivity_map = array(
-        'public'       => kolabformat::ClassPublic,
-        'private'      => kolabformat::ClassPrivate,
-        'confidential' => kolabformat::ClassConfidential,
-    );
-
     /**
      * Set properties to the kolabformat object
      *
-     * @param array  Object data as hash array
+     * @param array $object Object data as hash array
      */
     public function set(&$object)
     {
@@ -50,9 +44,8 @@ class kolab_format_note extends kolab_format
         parent::set($object);
 
         $this->obj->setSummary($object['title']);
-        $this->obj->setDescription($object['description']);
-        $this->obj->setClassification($this->sensitivity_map[$object['sensitivity']]);
-        $this->obj->setCategories(self::array2vector($object['categories']));
+        $this->obj->setDescription($object['description'] ?? null);
+        $this->obj->setCategories(self::array2vector($object['categories'] ?? null));
 
         $this->set_attachments($object);
 
@@ -72,28 +65,26 @@ class kolab_format_note extends kolab_format
     /**
      * Convert the Configuration object into a hash array data structure
      *
-     * @param array Additional data for merge
+     * @param array $data Additional data for merge
      *
-     * @return array  Config object data as hash array
+     * @return array Config object data as hash array
      */
-    public function to_array($data = array())
+    public function to_array($data = [])
     {
         // return cached result
-        if (!empty($this->data))
+        if (!empty($this->data)) {
             return $this->data;
+        }
 
         // read common object props into local data object
         $object = parent::to_array($data);
 
-        $sensitivity_map = array_flip($this->sensitivity_map);
-
         // read object properties
-        $object += array(
-            'sensitivity' => $sensitivity_map[$this->obj->classification()],
+        $object += [
             'categories'  => self::vector2array($this->obj->categories()),
             'title'       => $this->obj->summary(),
             'description' => $this->obj->description(),
-        );
+        ];
 
         $this->get_attachments($object);
 
@@ -107,14 +98,14 @@ class kolab_format_note extends kolab_format
      */
     public function get_tags()
     {
-        $tags = array();
+        $tags = [];
 
-        foreach ((array)$this->data['categories'] as $cat) {
+        foreach ((array)($this->data['categories'] ?? null) as $cat) {
             $tags[] = rcube_utils::normalize_string($cat);
         }
 
         // add tag for message references
-        foreach ((array)$this->data['links'] as $link) {
+        foreach ((array)($this->data['links'] ?? []) as $link) {
             $url = parse_url($link);
             if ($url['scheme'] == 'imap') {
                 parse_str($url['query'], $param);
@@ -134,20 +125,23 @@ class kolab_format_note extends kolab_format
     {
         $data = '';
         foreach (self::$fulltext_cols as $col) {
-            // convert HTML content to plain text
-            if ($col == 'description' && preg_match('/<(html|body)(\s[a-z]|>)/', $this->data[$col], $m) && strpos($this->data[$col], '</'.$m[1].'>')) {
-                $converter = new rcube_html2text($this->data[$col], false, false, 0);
-                $val = $converter->get_text();
-            }
-            else {
-                $val = is_array($this->data[$col]) ? join(' ', $this->data[$col]) : $this->data[$col];
+            if (empty($this->data[$col])) {
+                continue;
             }
 
-            if (strlen($val))
+            // convert HTML content to plain text
+            if ($col == 'description' && preg_match('/<(html|body)(\s[a-z]|>)/', $this->data[$col], $m) && strpos($this->data[$col], '</' . $m[1] . '>')) {
+                $converter = new rcube_html2text($this->data[$col], false, false, 0);
+                $val = $converter->get_text();
+            } else {
+                $val = is_array($this->data[$col]) ? implode(' ', $this->data[$col]) : $this->data[$col];
+            }
+
+            if (strlen($val)) {
                 $data .= $val . ' ';
+            }
         }
 
         return array_filter(array_unique(rcube_utils::normalize_string($data, true)));
     }
-
 }

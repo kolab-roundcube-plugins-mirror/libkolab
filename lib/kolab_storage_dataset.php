@@ -26,18 +26,21 @@
 
 class kolab_storage_dataset implements Iterator, ArrayAccess, Countable
 {
+    public const CHUNK_SIZE = 25;
+
     private $cache;  // kolab_storage_cache instance to use for fetching data
     private $memlimit = 0;
     private $buffer = false;
-    private $index = array();
-    private $data = array();
+    private $index = [];
+    private $data = [];
     private $iteratorkey = 0;
     private $error = null;
+    private $chunk = [];
 
     /**
      * Default constructor
      *
-     * @param object kolab_storage_cache instance to be used for fetching objects upon access
+     * @param kolab_storage_cache $cache Cache instance to be used for fetching objects upon access
      */
     public function __construct($cache)
     {
@@ -69,7 +72,7 @@ class kolab_storage_dataset implements Iterator, ArrayAccess, Countable
 
     /*** Implement PHP Countable interface ***/
 
-    public function count()
+    public function count(): int
     {
         return count($this->index);
     }
@@ -77,20 +80,22 @@ class kolab_storage_dataset implements Iterator, ArrayAccess, Countable
 
     /*** Implement PHP ArrayAccess interface ***/
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
-        $uid = $value['_msguid'];
+        if (is_string($value)) {
+            $uid = $value;
+        } else {
+            $uid = !empty($value['_msguid']) ? $value['_msguid'] : $value['uid'];
+        }
 
         if (is_null($offset)) {
             $offset = count($this->index);
-            $this->index[] = $uid;
-        }
-        else {
-            $this->index[$offset] = $uid;
         }
 
+        $this->index[$offset] = $uid;
+
         // keep full payload data in memory if possible
-        if ($this->memlimit && $this->buffer && isset($value['_mailbox'])) {
+        if ($this->memlimit && $this->buffer) {
             $this->data[$offset] = $value;
 
             // check memory usage and stop buffering
@@ -100,23 +105,56 @@ class kolab_storage_dataset implements Iterator, ArrayAccess, Countable
         }
     }
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
         return isset($this->index[$offset]);
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         unset($this->index[$offset]);
     }
 
+    #[ReturnTypeWillChange]
     public function offsetGet($offset)
     {
+        if (isset($this->chunk[$offset])) {
+            return $this->chunk[$offset] ?: null;
+        }
+
+        // The item is a string (object's UID), use multiget method to pre-fetch
+        // multiple objects from the server in one request
+        if (isset($this->data[$offset]) && is_string($this->data[$offset]) && method_exists($this->cache, 'multiget')) {
+            $idx  = $offset;
+            $uids = [];
+
+            while (isset($this->index[$idx]) && count($uids) < self::CHUNK_SIZE) {
+                if (isset($this->data[$idx]) && !is_string($this->data[$idx])) {
+                    // skip objects that had the raw content in the cache (are not empty)
+                } else {
+                    $uids[$idx] = $this->index[$idx];
+                }
+
+                $idx++;
+            }
+
+            if (!empty($uids)) {
+                $this->chunk = $this->cache->multiget($uids);
+            }
+
+            if (isset($this->chunk[$offset])) {
+                return $this->chunk[$offset] ?: null;
+            }
+
+            return null;
+        }
+
         if (isset($this->data[$offset])) {
             return $this->data[$offset];
         }
-        else if ($msguid = $this->index[$offset]) {
-            return $this->cache->get($msguid);
+
+        if ($uid = ($this->index[$offset] ?? null)) {
+            return $this->cache->get($uid);
         }
 
         return null;
@@ -125,28 +163,28 @@ class kolab_storage_dataset implements Iterator, ArrayAccess, Countable
 
     /*** Implement PHP Iterator interface ***/
 
+    #[ReturnTypeWillChange]
     public function current()
     {
         return $this->offsetGet($this->iteratorkey);
     }
 
-    public function key()
+    public function key(): int
     {
         return $this->iteratorkey;
     }
 
-    public function next()
+    public function next(): void
     {
         $this->iteratorkey++;
-        return $this->valid();
     }
 
-    public function rewind()
+    public function rewind(): void
     {
         $this->iteratorkey = 0;
     }
 
-    public function valid()
+    public function valid(): bool
     {
         return !empty($this->index[$this->iteratorkey]);
     }

@@ -46,10 +46,6 @@
             padding-right: 1em;
         }
 
-        &.sensitivity {
-            font-weight: bold;
-        }
-
         &.recurrence-id {
             text-transform: uppercase;
             font-style: italic;
@@ -262,7 +258,7 @@
             content: @fa-var-envelope;
             display: inline;
             float: none;
-            margin-left: .25rem;
+            line-height: 1;
         }
 
     }
@@ -568,24 +564,6 @@
 
             &:before {
                 content: @fa-var-times-circle;
-            }
-        }
-
-        .sensitivity-private & {
-            background-color: darken(@color-warning, 10%);
-            display: block;
-
-            &:before {
-                content: @fa-var-lock;
-            }
-        }
-
-        .sensitivity-confidential & {
-            background-color: darken(@color-error, 10%);
-            display: block;
-
-            &:before {
-                content: @fa-var-user-secret;
             }
         }
     }

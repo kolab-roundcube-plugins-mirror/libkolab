@@ -63,11 +63,11 @@ class kolab_bonnie_api_client
      * Default HTTP headers to send to the server
      * @var array
      */
-    protected $headers = array(
+    protected $headers = [
         'Connection' => 'close',
         'Content-Type' => 'application/json',
         'Accept' => 'application/json',
-    );
+    ];
 
     /**
      * Constructor
@@ -77,7 +77,7 @@ class kolab_bonnie_api_client
      * @param  bool    $debug    Enabled debug logging
      * @param  array   $headers  Custom HTTP headers
      */
-    public function __construct($url, $timeout = 5, $debug = false, $headers = array())
+    public function __construct($url, $timeout = 5, $debug = false, $headers = [])
     {
         $this->url = $url;
         $this->timeout = $timeout;
@@ -132,15 +132,15 @@ class kolab_bonnie_api_client
      * @param  array  $params  Procedure arguments
      * @return mixed
      */
-    public function execute($method, array $params = array())
+    public function execute($method, array $params = [])
     {
         $id = mt_rand();
 
-        $payload = array(
+        $payload = [
             'jsonrpc' => '2.0',
             'method' => $method,
             'id' => $id,
-        );
+        ];
 
         if (!empty($params)) {
             $payload['params'] = $params;
@@ -150,8 +150,7 @@ class kolab_bonnie_api_client
 
         if (isset($result['id']) && $result['id'] == $id && array_key_exists('result', $result)) {
             return $result['result'];
-        }
-        else if (isset($result['error'])) {
+        } elseif (isset($result['error'])) {
             $this->_debug('ERROR', $result);
         }
 
@@ -161,9 +160,12 @@ class kolab_bonnie_api_client
     /**
      * Do the HTTP request
      *
-     * @param  string  $payload  Data to send
+     * @param array $payload Data to send
+     * @param bool  $sign    Enable signed request
+     *
+     * @return array
      */
-    protected function send_request($payload, $sign = true)
+    protected function send_request(array $payload, $sign = true)
     {
         try {
             $payload_ = json_encode($payload);
@@ -171,13 +173,13 @@ class kolab_bonnie_api_client
             // add request signature
             if ($sign && !empty($this->secret)) {
                 $this->headers['X-Request-Sign'] = $this->request_signature($payload_);
-            }
-            else if ($this->headers['X-Request-Sign']) {
+            } elseif ($this->headers['X-Request-Sign']) {
                 unset($this->headers['X-Request-Sign']);
             }
 
             $this->_debug('REQUEST', $payload, $this->headers);
-            $request = libkolab::http_request($this->url, 'POST', array('timeout' => $this->timeout));
+
+            $request = libkolab::http_request($this->url, 'POST', ['timeout' => $this->timeout]);
             $request->setHeader($this->headers);
             $request->setAuth($this->username, $this->password);
             $request->setBody($payload_);
@@ -187,22 +189,20 @@ class kolab_bonnie_api_client
             if ($response->getStatus() == 200) {
                 $result = json_decode($response->getBody(), true);
                 $this->_debug('RESPONSE', $result);
-            }
-            else {
+            } else {
                 throw new Exception(sprintf("HTTP %d %s", $response->getStatus(), $response->getReasonPhrase()));
             }
-        }
-        catch (Exception $e) {
-            rcube::raise_error(array(
+        } catch (Exception $e) {
+            rcube::raise_error([
                 'code' => 500,
                 'type' => 'php',
                 'message' => "Bonnie API request failed: " . $e->getMessage(),
-            ), true);
+            ], true);
 
-            return array('id' => $payload['id'], 'error' => $e->getMessage(), 'code' => -32000);
+            return ['id' => $payload['id'], 'error' => $e->getMessage(), 'code' => -32000];
         }
 
-        return is_array($result) ? $result : array();
+        return isset($result) && is_array($result) ? $result : [];
     }
 
     /**
@@ -223,16 +223,17 @@ class kolab_bonnie_api_client
      */
     protected function _debug(/* $message, $data1, data2, ...*/)
     {
-        if (!$this->debug)
+        if (!$this->debug) {
             return;
+        }
 
         $args = func_get_args();
 
-        $msg = array();
+        $msg = [];
         foreach ($args as $arg) {
             $msg[] = !is_string($arg) ? var_export($arg, true) : $arg;
         }
 
-        rcube::write_log('bonnie', join(";\n", $msg));
+        rcube::write_log('bonnie', implode(";\n", $msg));
     }
 }

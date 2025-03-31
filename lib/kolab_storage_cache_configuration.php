@@ -23,7 +23,7 @@
 
 class kolab_storage_cache_configuration extends kolab_storage_cache
 {
-    protected $extra_cols = array('type');
+    protected $extra_cols = ['type'];
 
     /**
      * Helper method to convert the given Kolab object into a dataset to be written to cache
@@ -55,14 +55,14 @@ class kolab_storage_cache_configuration extends kolab_storage_cache
     /**
      * Select Kolab objects filtered by the given query
      *
-     * @param array   Pseudo-SQL query as list of filter parameter triplets
-     * @param boolean Set true to only return UIDs instead of complete objects
-     * @param boolean Use fast mode to fetch only minimal set of information
-     *                (no xml fetching and parsing, etc.)
+     * @param array $query Pseudo-SQL query as list of filter parameter triplets
+     * @param bool  $uids  Set true to only return UIDs instead of complete objects
+     * @param bool  $fast  Use fast mode to fetch only minimal set of information
+     *                     (no xml fetching and parsing, etc.)
      *
      * @return array List of Kolab data objects (each represented as hash array) or UIDs
      */
-    public function select($query = array(), $uids = false, $fast = false)
+    public function select($query = [], $uids = false, $fast = false)
     {
         // modify query for IMAP search: query param 'type' is actually a subtype
         if (!$this->ready) {
@@ -80,19 +80,19 @@ class kolab_storage_cache_configuration extends kolab_storage_cache
     /**
      * Helper method to compose a valid SQL query from pseudo filter triplets
      */
-    protected function _sql_where($query)
+    public static function sql_where($query)
     {
         if (is_array($query)) {
             foreach ($query as $idx => $param) {
                 // convert category filter
                 if ($param[0] == 'category') {
-                    $param[2] = array_map(function($n) { return 'category:' . $n; }, (array) $param[2]);
+                    $param[2] = array_map(function ($n) { return 'category:' . $n; }, (array) $param[2]);
 
                     $query[$idx][0] = 'tags';
                     $query[$idx][2] = count($param[2]) > 1 ? $param[2] : $param[2][0];
                 }
                 // convert member filter (we support only = operator with single value)
-                else if ($param[0] == 'member') {
+                elseif ($param[0] == 'member') {
                     $query[$idx][0] = 'words';
                     $query[$idx][1] = '~';
                     $query[$idx][2] = '^' . $param[2] . '$';
@@ -100,7 +100,7 @@ class kolab_storage_cache_configuration extends kolab_storage_cache
             }
         }
 
-        return parent::_sql_where($query);
+        return parent::sql_where($query);
     }
 
     /**
@@ -109,28 +109,28 @@ class kolab_storage_cache_configuration extends kolab_storage_cache
     protected function set_data_props($type)
     {
         switch ($type) {
-        case 'dictionary':
-            $this->data_props = array('language', 'e');
-            break;
+            case 'dictionary':
+                $this->data_props = ['language', 'e'];
+                break;
 
-        case 'file_driver':
-            $this->data_props = array('driver', 'title', 'enabled', 'host', 'port', 'username', 'password');
-            break;
+            case 'file_driver':
+                $this->data_props = ['driver', 'title', 'enabled', 'host', 'port', 'username', 'password'];
+                break;
 
-        case 'relation':
-            // Note: Because relations are heavily used, for performance reasons
-            // we store all properties for them
-            $this->data_props = array('name', 'category', 'color', 'parent', 'iconName', 'priority', 'members');
-            break;
+            case 'relation':
+                // Note: Because relations are heavily used, for performance reasons
+                // we store all properties for them
+                $this->data_props = ['name', 'category', 'color', 'parent', 'iconName', 'priority', 'members'];
+                break;
 
-        case 'snippet':
-            $this->data_props = array('name');
-            break;
+            case 'snippet':
+                $this->data_props = ['name'];
+                break;
 
-        case 'category':
-        default:
-            // TODO: implement this
-            $this->data_props = array();
+            case 'category':
+            default:
+                // TODO: implement this
+                $this->data_props = [];
         }
     }
 }

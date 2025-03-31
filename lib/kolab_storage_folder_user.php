@@ -35,9 +35,8 @@ class kolab_storage_folder_user extends kolab_storage_folder_virtual
 
         if (!empty($ldaprec)) {
             $this->ldaprec = $ldaprec;
-        }
-        else {
-            $this->ldaprec = kolab_storage::folder_id2user(parent::get_foldername($this->name));
+        } else {
+            $this->ldaprec = kolab_storage::folder_id2user(parent::get_foldername());
             if (!empty($this->ldaprec)) {
                 $this->ldaprec['kolabtargetfolder'] = $name;
             }
@@ -79,7 +78,7 @@ class kolab_storage_folder_user extends kolab_storage_folder_virtual
      * Check subscription status of this folder.
      * Subscription of a virtual user folder depends on the subscriptions of subfolders.
      *
-     * @return boolean True if subscribed, false if not
+     * @return bool True if subscribed, false if not
      */
     public function is_subscribed()
     {
@@ -103,9 +102,9 @@ class kolab_storage_folder_user extends kolab_storage_folder_virtual
     /**
      * Change subscription status of this folder
      *
-     * @param boolean The desired subscription status: true = subscribed, false = not subscribed
+     * @param bool $subscribed The desired subscription status: true = subscribed, false = not subscribed
      *
-     * @return True on success, false on error
+     * @return bool True on success, false on error
      */
     public function subscribe($subscribed)
     {

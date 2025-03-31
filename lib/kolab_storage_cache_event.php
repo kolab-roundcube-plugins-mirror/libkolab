@@ -23,8 +23,8 @@
 
 class kolab_storage_cache_event extends kolab_storage_cache
 {
-    protected $extra_cols = array('dtstart','dtend');
-    protected $data_props = array('categories', 'status', 'attendees'); // start, end
+    protected $extra_cols = ['dtstart','dtend'];
+    protected $data_props = ['categories', 'status', 'attendees']; // start, end
 
     /**
      * Helper method to convert the given Kolab object into a dataset to be written to cache
@@ -35,26 +35,27 @@ class kolab_storage_cache_event extends kolab_storage_cache
     {
         $sql_data = parent::_serialize($object);
 
-        $sql_data['dtstart'] = $this->_convert_datetime($object['start']);
-        $sql_data['dtend']   = $this->_convert_datetime($object['end']);
+        $sql_data['dtstart'] = $this->_convert_datetime($object['start'] ?? null);
+        $sql_data['dtend']   = $this->_convert_datetime($object['end'] ?? null);
 
         // extend date range for recurring events
-        if ($object['recurrence'] && $object['_formatobj']) {
+        if (!empty($object['recurrence'])) {
             $recurrence = new kolab_date_recurrence($object['_formatobj']);
-            $dtend = $recurrence->end() ?: new DateTime('now +100 years');
-            $sql_data['dtend'] = $this->_convert_datetime($dtend);
+            if ($dtend = $recurrence->end()) {
+                $sql_data['dtend'] = $this->_convert_datetime($dtend);
+            }
         }
 
         // extend start/end dates to spawn all exceptions
-        if (is_array($object['exceptions'])) {
+        if (!empty($object['exceptions'])) {
             foreach ($object['exceptions'] as $exception) {
-                if (is_a($exception['start'], 'DateTime')) {
+                if (($exception['start'] ?? null) instanceof DateTimeInterface) {
                     $exstart = $this->_convert_datetime($exception['start']);
                     if ($exstart < $sql_data['dtstart']) {
                         $sql_data['dtstart'] = $exstart;
                     }
                 }
-                if (is_a($exception['end'], 'DateTime')) {
+                if (($exception['end'] ?? null) instanceof DateTimeInterface) {
                     $exend = $this->_convert_datetime($exception['end']);
                     if ($exend > $sql_data['dtend']) {
                         $sql_data['dtend'] = $exend;

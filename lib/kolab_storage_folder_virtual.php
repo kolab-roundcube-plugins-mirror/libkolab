@@ -23,8 +23,6 @@
  */
 class kolab_storage_folder_virtual extends kolab_storage_folder_api
 {
-    public $virtual = true;
-
     protected $displayname;
 
     public function __construct($name, $dispname, $ns, $parent = '')
@@ -49,7 +47,8 @@ class kolab_storage_folder_virtual extends kolab_storage_folder_api
     /**
      * Get the color value stored in metadata
      *
-     * @param string Default color value to return if not set
+     * @param string $default Default color value to return if not set
+     *
      * @return mixed Color value from IMAP metadata or $default is not set
      */
     public function get_color($default = null)

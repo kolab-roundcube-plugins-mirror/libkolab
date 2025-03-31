@@ -109,7 +109,6 @@ $sql_arr = $db->fetch_assoc($db->query("SELECT COUNT(*) as cnt FROM `$cache_tabl
 print "CTag     = " . $folder_data['ctag'] . "\n";
 print "Lock     = " . $folder_data['synclock'] . "\n";
 print "Changed  = " . $folder_data['changed'] . "\n";
-print "ObjCount = " . $folder_data['objectcount'] . "\n";
 print "Count    = " . $sql_arr['cnt'] . "\n";
 print "----------------------------------------------------------------------------------\n";
 print "<MSG>\t<UUID>\t<CHANGED>\t<DATA>\t";
@@ -140,7 +139,7 @@ function imap_host()
 {
     global $rcmail;
 
-    $default_host = $rcmail->config->get('default_host');
+    $default_host = $rcmail->config->get('imap_host', $rcmail->config->get('default_host'));
 
     if (is_array($default_host)) {
         $key = key($default_host);

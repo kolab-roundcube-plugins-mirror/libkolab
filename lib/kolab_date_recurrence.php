@@ -4,7 +4,7 @@
  * Recurrence computation class for xcal-based Kolab format objects
  *
  * Utility class to compute instances of recurring events.
- * It requires the libcalendaring PHP module to be installed and loaded.
+ * It requires the libcalendaring PHP extension to be installed and loaded.
  *
  * @version @package_version@
  * @author Thomas Bruederli <bruederli@kolabsys.com>
@@ -24,23 +24,37 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 class kolab_date_recurrence
 {
-    private /* EventCal */ $engine;
-    private /* kolab_format_xcal */ $object;
-    private /* DateTime */ $start;
-    private /* DateTime */ $next;
-    private /* cDateTime */ $cnext;
-    private /* DateInterval */ $duration;
-    private /* bool */ $allday;
+    /** @var EventCal */
+    private $engine;
+
+    /* @var kolab_format_xcal */
+    private $object;
+
+    /** @var DateTime */
+    private $start;
+
+    /** @var DateTime */
+    private $next;
+
+    /** @var cDateTime */
+    private $cnext;
+
+    /** @var DateInterval */
+    private $duration;
+
+    /** @var bool */
+    private $allday;
 
 
     /**
      * Default constructor
      *
-     * @param kolab_format_xcal The Kolab object to operate on
+     * @param kolab_format_xcal $object The Kolab object to operate on
      */
-    function __construct($object)
+    public function __construct($object)
     {
         $data = $object->to_array();
 
@@ -52,8 +66,7 @@ class kolab_date_recurrence
 
         if (is_object($data['start']) && is_object($data['end'])) {
             $this->duration = $data['start']->diff($data['end']);
-        }
-        else {
+        } else {
             // Prevent from errors when end date is not set (#5307) RFC5545 3.6.1
             $seconds = !empty($data['end']) ? ($data['end'] - $data['start']) : 0;
             $this->duration = new DateInterval('PT' . $seconds . 'S');
@@ -63,16 +76,17 @@ class kolab_date_recurrence
     /**
      * Get date/time of the next occurence of this event
      *
-     * @param boolean Return a Unix timestamp instead of a DateTime object
+     * @param bool $timestamp Return a Unix timestamp instead of a DateTime object
      *
-     * @return mixed  DateTime object/unix timestamp or False if recurrence ended
+     * @return DateTime|int|false Object/unix timestamp or False if recurrence ended
      */
     public function next_start($timestamp = false)
     {
         $time = false;
 
         if ($this->engine && $this->next) {
-            if (($cnext = new cDateTime($this->engine->getNextOccurence($this->cnext))) && $cnext->isValid()) {
+            $cnext = new cDateTime($this->engine->getNextOccurence($this->cnext));
+            if ($cnext->isValid()) {
                 $next = kolab_format::php_datetime($cnext, $this->start->getTimezone());
                 $time = $timestamp ? $next->format('U') : $next;
 
@@ -118,16 +132,16 @@ class kolab_date_recurrence
     }
 
     /**
-     * Get the end date of the occurence of this recurrence cycle
+     * Get the end date of the last occurence of this recurrence cycle
      *
-     * @return DateTime|bool End datetime of the last event or False if recurrence exceeds limit
+     * @return DateTimeInterface|bool End datetime of the last event or False if recurrence exceeds limit
      */
     public function end()
     {
         $event = $this->object->to_array();
 
         // recurrence end date is given
-        if ($event['recurrence']['UNTIL'] instanceof DateTime) {
+        if (isset($event['recurrence']['UNTIL']) && $event['recurrence']['UNTIL'] instanceof DateTimeInterface) {
             return $event['recurrence']['UNTIL'];
         }
 
@@ -138,12 +152,13 @@ class kolab_date_recurrence
             return $end_dt;
         }
 
-        // determine a reasonable end date if none given
-        if (!$event['recurrence']['COUNT'] && $event['end'] instanceof DateTime) {
-            $end_dt = clone $event['end'];
-            $end_dt->add(new DateInterval('P100Y'));
-
-            return $end_dt;
+        // determine a reasonable end date for an infinite recurrence
+        if (empty($event['recurrence']['COUNT'])) {
+            if (!empty($event['start']) && $event['start'] instanceof DateTime) {
+                $start_dt = clone $event['start'];
+                $start_dt->add(new DateInterval('P100Y'));
+                return $start_dt;
+            }
         }
 
         return false;
@@ -151,6 +166,8 @@ class kolab_date_recurrence
 
     /**
      * Find date/time of the first occurrence
+     *
+     * @return DateTime|null First occurrence
      */
     public function first_occurrence()
     {
@@ -160,42 +177,43 @@ class kolab_date_recurrence
         $interval   = intval($event['recurrence']['INTERVAL'] ?: 1);
 
         switch ($event['recurrence']['FREQ']) {
-        case 'WEEKLY':
-            if (empty($event['recurrence']['BYDAY'])) {
-                return $orig_start;
-            }
+            case 'WEEKLY':
+                if (empty($event['recurrence']['BYDAY'])) {
+                    return $orig_start;
+                }
 
-            $start->sub(new DateInterval("P{$interval}W"));
-            break;
-
-        case 'MONTHLY':
-            if (empty($event['recurrence']['BYDAY']) && empty($event['recurrence']['BYMONTHDAY'])) {
-                return $orig_start;
-            }
-
-            $start->sub(new DateInterval("P{$interval}M"));
-            break;
-
-        case 'YEARLY':
-            if (empty($event['recurrence']['BYDAY']) && empty($event['recurrence']['BYMONTH'])) {
-                return $orig_start;
-            }
-
-            $start->sub(new DateInterval("P{$interval}Y"));
-            break;
-
-        case 'DAILY':
-            if (!empty($event['recurrence']['BYMONTH'])) {
+                $start->sub(new DateInterval("P{$interval}W"));
                 break;
-            }
 
-        default:
-            return $orig_start;
+            case 'MONTHLY':
+                if (empty($event['recurrence']['BYDAY']) && empty($event['recurrence']['BYMONTHDAY'])) {
+                    return $orig_start;
+                }
+
+                $start->sub(new DateInterval("P{$interval}M"));
+                break;
+
+            case 'YEARLY':
+                if (empty($event['recurrence']['BYDAY']) && empty($event['recurrence']['BYMONTH'])) {
+                    return $orig_start;
+                }
+
+                $start->sub(new DateInterval("P{$interval}Y"));
+                break;
+
+            case 'DAILY':
+                if (!empty($event['recurrence']['BYMONTH'])) {
+                    break;
+                }
+
+                // no break
+            default:
+                return $orig_start;
         }
 
         $event['start'] = $start;
         $event['recurrence']['INTERVAL'] = $interval;
-        if ($event['recurrence']['COUNT']) {
+        if (!empty($event['recurrence']['COUNT'])) {
             // Increase count so we do not stop the loop to early
             $event['recurrence']['COUNT'] += 100;
         }
@@ -219,17 +237,20 @@ class kolab_date_recurrence
         }
 
         if (!$found) {
-            rcube::raise_error(array(
+            rcube::raise_error([
                 'file' => __FILE__,
                 'line' => __LINE__,
-                'message' => sprintf("Failed to find a first occurrence. Start: %s, Recurrence: %s",
-                    $orig_start->format(DateTime::ISO8601), json_encode($event['recurrence'])),
-            ), true);
+                'message' => sprintf(
+                    "Failed to find a first occurrence. Start: %s, Recurrence: %s",
+                    $orig_start->format(DateTime::ISO8601),
+                    json_encode($event['recurrence'])
+                ),
+            ], true);
 
             return null;
         }
 
-        if ($this->allday) {
+        if ($this->allday && $start instanceof libcalendaring_datetime) {
             $start->_dateonly = true;
         }
 
