@@ -41,8 +41,8 @@ class kolab_storage_dav_folder extends kolab_storage_folder
     {
         $this->attributes = $attributes;
 
-        $this->href  = $this->attributes['href'];
-        $this->id    = kolab_storage_dav::folder_id($dav->url, $this->href);
+        $this->href  = rtrim($this->attributes['href'], '/');
+        $this->id    = kolab_storage_dav::folder_id($dav->url, $dav->normalize_location($this->href));
         $this->dav   = $dav;
         $this->valid = true;
 
@@ -938,12 +938,7 @@ class kolab_storage_dav_folder extends kolab_storage_folder
             return false;
         }
 
-        // In Kolab the users (principals) are under /principals/user/<user>
-        // TODO: This might need to be configurable or discovered somehow
-        $path = '/principals/user/';
-        if ($host_path = parse_url($this->dav->url, PHP_URL_PATH)) {
-            $path = '/' . trim($host_path, '/') . $path;
-        }
+        $path = $this->dav->getHome('PRINCIPAL');
 
         $specials = ['all', 'authenticated', 'self'];
         $request = [];
@@ -973,12 +968,7 @@ class kolab_storage_dav_folder extends kolab_storage_folder
             return false;
         }
 
-        // In Kolab the users (principals) are under /principals/user/<user>
-        // TODO: This might need to be configurable or discovered somehow
-        $path = '/principals/user/';
-        if ($host_path = parse_url($this->dav->url, PHP_URL_PATH)) {
-            $path = '/' . trim($host_path, '/') . $path;
-        }
+        $path = $this->dav->getHome('PRINCIPAL');
 
         $request = [];
 

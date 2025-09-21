@@ -29,8 +29,9 @@ class kolab_storage_dav
     public const ERROR_INVALID_FOLDER = 4;
 
     public static $last_error;
+    public $dav;
+    public $new_location;
 
-    protected $dav;
     protected $url;
 
 
@@ -171,10 +172,6 @@ class kolab_storage_dav
      */
     public static function folder_id($uri, $href)
     {
-        if (($rootPath = parse_url($uri, PHP_URL_PATH)) && strpos($href, $rootPath) === 0) {
-            $href = substr($href, strlen($rootPath));
-        }
-
         // Start with a letter to prevent from all kind of issues if it starts with a digit
         return 'f' . md5(rtrim($uri, '/') . '/' . trim($href, '/'));
     }
@@ -281,6 +278,8 @@ class kolab_storage_dav
         $result   = $this->dav->folderCreate($location, $type, $prop);
 
         if ($result) {
+            $this->new_location = $this->dav->normalize_location($location);
+
             return self::folder_id($this->dav->url, $location);
         }
 

@@ -49,8 +49,14 @@ class kolab_utils
             }
         }
 
+        // Allow plugins to add something to the form (e.g. kolab_activesync)
+        $plugin = $rcmail->plugins->exec_hook('kolab_folder_form', [
+                'form'   => $form,
+                'folder' => $folder,
+        ]);
+
         // create form output
-        foreach ($form as $tab) {
+        foreach ($plugin['form'] as $tab) {
             if (isset($tab['fields']) && is_array($tab['fields']) && empty($tab['content'])) {
                 $table = new html_table(['cols' => 2, 'class' => 'propform']);
                 foreach ($tab['fields'] as $col => $colprop) {

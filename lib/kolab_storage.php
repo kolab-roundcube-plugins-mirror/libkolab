@@ -33,6 +33,7 @@ class kolab_storage
     public const NAME_KEY_PRIVATE  = '/private/vendor/kolab/displayname';
     public const UID_KEY_SHARED    = '/shared/vendor/kolab/uniqueid';
     public const UID_KEY_CYRUS     = '/shared/vendor/cmu/cyrus-imapd/uniqueid';
+    public const ASYNC_KEY         = '/private/vendor/kolab/activesync';
 
     public const ERROR_IMAP_CONN      = 1;
     public const ERROR_CACHE_DB       = 2;
@@ -84,29 +85,25 @@ class kolab_storage
         self::$config  = $rcmail->config;
         self::$version = strval($rcmail->config->get('kolab_format_version', self::$version));
         self::$imap    = $rcmail->get_storage();
-        self::$ready   = class_exists('kolabformat') &&
-            (self::$imap->get_capability('METADATA') || self::$imap->get_capability('ANNOTATEMORE') || self::$imap->get_capability('ANNOTATEMORE2'));
+        self::$ready   = self::$imap->get_capability('METADATA')
+            || self::$imap->get_capability('ANNOTATEMORE')
+            || self::$imap->get_capability('ANNOTATEMORE2');
 
         if (self::$ready) {
             // do nothing
-        } elseif (!class_exists('kolabformat')) {
-            rcube::raise_error([
-                'code' => 900, 'type' => 'php',
-                'message' => "required kolabformat module not found",
-            ], true);
         } elseif (self::$imap->get_error_code()) {
-            rcube::raise_error([
-                'code' => 900, 'type' => 'php', 'message' => "IMAP error",
-            ], true);
+            rcube::raise_error(['code' => 900, 'type' => 'php', 'message' => "IMAP error"], true);
         }
 
-        // adjust some configurable settings
-        if ($event_scheduling_prop = $rcmail->config->get('kolab_event_scheduling_properties', null)) {
-            kolab_format_event::$scheduling_properties = (array)$event_scheduling_prop;
-        }
-        // adjust some configurable settings
-        if ($task_scheduling_prop = $rcmail->config->get('kolab_task_scheduling_properties', null)) {
-            kolab_format_task::$scheduling_properties = (array)$task_scheduling_prop;
+        if (class_exists('kolabformat')) {
+            // adjust some configurable settings
+            if ($event_scheduling_prop = $rcmail->config->get('kolab_event_scheduling_properties', null)) {
+                kolab_format_event::$scheduling_properties = (array) $event_scheduling_prop;
+            }
+            // adjust some configurable settings
+            if ($task_scheduling_prop = $rcmail->config->get('kolab_task_scheduling_properties', null)) {
+                kolab_format_task::$scheduling_properties = (array) $task_scheduling_prop;
+            }
         }
 
         return self::$ready;
@@ -1653,7 +1650,6 @@ class kolab_storage
         $db = rcube::get_instance()->get_dbh();
         $prefix = 'imap://' . urlencode($args['username']) . '@' . $args['host'] . '/%';
         $db->query("DELETE FROM " . $db->table_name('kolab_folders', true) . " WHERE `resource` LIKE ?", $prefix);
-
     }
 
     /**
@@ -1677,7 +1673,7 @@ class kolab_storage
 
             $metadata = self::$imap->get_metadata($folder, $keys);
 
-            return $metadata[$folder];
+            return $metadata[$folder] ?? [];
         }
     }
 
@@ -1701,7 +1697,13 @@ class kolab_storage
         }
 
         if ($name_attr === null) {
-            $name_attr = (array) ($rcube->config->get('kolab_users_name_field', $rcube->config->get('kolab_auth_name')) ?: 'name');
+            $name_attr = $rcube->config->get('kolab_users_name_field', $rcube->config->get('kolab_auth_name'));
+
+            if ($name_attr === false) {
+                return null;
+            }
+
+            $name_attr = (array) ($name_attr ?: 'name');
         }
 
         $token = $folder_id;

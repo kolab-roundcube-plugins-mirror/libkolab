@@ -66,6 +66,7 @@ $config['kolab_users_search_attrib'] = ['cn','mail','alias'];
 
 // Which property of the LDAP user record to use as a display name.
 // Defaults to the 'kolab_auth_name' configuration option.
+// Note: Set it to false to disable UID to fullname resolution
 $config['kolab_users_name_field'] = null;
 
 // Type of cache for uid-to-user map. Supported: 'db', 'apc', 'memcache' and 'memcached'.
@@ -94,3 +95,7 @@ $config['kolab_bonnie_api'] = array(
     'timeout' => 30,
 );
 */
+
+// Force a subscription state per devicetype (lowercase) and folder
+// States can be: 0 => not subscribed, 1 => subscribed, 2 => subscribed with alarm
+$config['activesync_force_subscriptions'] = ['windowsoutlook15' => ['INBOX' => 1, 'Sent' => 1, 'Trash' => 1, 'Spam' => 1, 'Junk Email' => 1, 'Calendar' => 1, 'Contacts' => 1, 'Addressbook' => 1, 'Tasks' => 1, '/dav/calendars/user/.*/Default' => 1, '/dav/addressbooks/user/.*/Default' => 1]];
